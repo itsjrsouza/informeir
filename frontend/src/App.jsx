@@ -115,18 +115,80 @@ function AbaLote(){
     document.body.appendChild(a);a.click();a.remove();
   }
 
-  async function handleUpload(e){
-    const file=e.target.files?.[0];if(!file)return;
-    setLP(true);setMsgErro(null);
-    const form=new FormData();form.append("arquivo",file);
-    try{
-      const res=await fetch(API_URL+"/api/lote/preview",{method:"POST",body:form});
-      const data=await res.json();
-      if(data.erro)throw new Error(data.erro);
-      setSocios(data.socios||[]);setErros(data.erros||[]);setFase("preview");
-    }catch(e){setMsgErro(e.message)}
-    finally{setLP(false);if(fileRef.current)fileRef.current.value=""}
+async function handleUpload(e){
+  const file = e.target.files?.[0];
+  if(!file) return;
+  
+  // 🔍 Verificação detalhada no frontend
+  console.log('📤 === UPLOAD INICIADO ===');
+  console.log('📋 Arquivo selecionado:', {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    lastModified: new Date(file.lastModified).toISOString()
+  });
+  
+  // Verificar se é realmente um .xlsx
+  if (!file.name.match(/\.xlsx$/i)) {
+    const msg = 'O arquivo deve ter extensão .xlsx';
+    console.error('❌', msg);
+    setMsgErro(msg);
+    return;
   }
+  
+  // Verificar tamanho mínimo
+  if (file.size < 1000) {
+    const msg = `Arquivo muito pequeno (${file.size} bytes). Pode estar vazio ou corrompido.`;
+    console.error('❌', msg);
+    setMsgErro(msg);
+    return;
+  }
+  
+  setLP(true);
+  setMsgErro(null);
+  
+  const form = new FormData();
+  form.append("arquivo", file, file.name); // Adiciona nome explícito
+  
+  console.log('📤 Enviando para:', `${API_URL}/api/lote/preview`);
+  
+  try{
+    const res = await fetch(`${API_URL}/api/lote/preview`, {
+      method: "POST",
+      body: form
+    });
+    
+    console.log('📥 Resposta recebida:', {
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      console.error('❌ Erro na resposta:', data);
+      throw new Error(data.erro || data.detalhes || 'Erro ao processar arquivo');
+    }
+    
+    console.log('✅ Preview processado com sucesso:', {
+      total: data.total,
+      validos: data.validos,
+      invalidos: data.invalidos
+    });
+    
+    setSocios(data.registros || []);
+    setErros(data.erros || []);
+    setFase("preview");
+  } catch(e) {
+    console.error('❌ Erro no upload:', e);
+    setMsgErro(e.message);
+  } finally {
+    setLP(false);
+    if(fileRef.current) fileRef.current.value = "";
+    console.log('='.repeat(50));
+  }
+}
 
   async function gerarLote(){
     setLG(true);setMsgErro(null);setFase("gerando");

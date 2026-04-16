@@ -29,6 +29,9 @@ const upload = multer({
   dest: TEMP,
   fileFilter: (req, file, cb) => {
     const ok = file.originalname.match(/\.(xlsx|xls)$/i);
+    if (!ok) {
+      console.log('❌ Arquivo rejeitado pelo filtro:', file.originalname);
+    }
     cb(ok ? null : new Error('Apenas arquivos .xlsx são aceitos'), !!ok);
   },
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -36,8 +39,13 @@ const upload = multer({
 
 function runPython(script, args) {
   return new Promise((resolve, reject) => {
+    console.log(`🐍 Executando Python: ${script} ${args.join(' ')}`);
     execFile('python3', [path.join(__dirname, script), ...args], { timeout: 120000 }, (err, stdout, stderr) => {
-      if (err) return reject(new Error(stderr || err.message));
+      if (err) {
+        console.error(`❌ Erro Python (${script}):`, stderr || err.message);
+        return reject(new Error(stderr || err.message));
+      }
+      console.log(`✅ Python OK (${script})`);
       resolve(stdout);
     });
   });
@@ -49,7 +57,7 @@ function slugify(str) {
 
 function cleanup(...files) {
   for (const f of files) {
-    try { if (f && fs.existsSync(f)) fs.unlinkSync(f); } catch (_) {}
+    try { if (f && fs.existsSync(f)) { fs.unlinkSync(f); console.log(`🧹 Limpo: ${f}`); } } catch (_) {}
   }
 }
 
@@ -59,10 +67,24 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/modelo-excel', async (req, res) => {
   const outPath = path.join(TEMP, `modelo_${Date.now()}.xlsx`);
+  console.log(`📥 Gerando modelo Excel: ${outPath}`);
   try {
     await runPython('gerarModeloExcel.py', [outPath]);
-    res.download(outPath, 'Modelo_Importacao_Informes.xlsx', () => cleanup(outPath));
+    
+    // Verificar se o arquivo foi gerado corretamente
+    const stats = fs.statSync(outPath);
+    console.log(`📊 Modelo gerado: ${stats.size} bytes`);
+    
+    if (stats.size < 1000) {
+      throw new Error('Arquivo modelo gerado está vazio ou corrompido');
+    }
+    
+    res.download(outPath, 'Modelo_Importacao_Informes.xlsx', (err) => {
+      if (err) console.error('❌ Erro no download:', err);
+      cleanup(outPath);
+    });
   } catch (err) {
+    console.error('❌ Erro ao gerar modelo:', err);
     cleanup(outPath);
     res.status(500).json({ erro: 'Erro ao gerar modelo Excel', detalhes: err.message });
   }
@@ -78,8 +100,12 @@ app.post('/api/informe/gerar', async (req, res) => {
   const docxPath = path.join(TEMP, `informe_${Date.now()}.docx`);
   try {
     await gerarInforme(dados, docxPath);
-    res.download(docxPath, `Informe_${slugify(dados.beneficiario.nome)}_${dados.anoCalendario || ''}.docx`, () => cleanup(docxPath));
+    res.download(docxPath, `Informe_${slugify(dados.beneficiario.nome)}_${dados.anoCalendario || ''}.docx`, (err) => {
+      if (err) console.error('❌ Erro no download:', err);
+      cleanup(docxPath);
+    });
   } catch (err) {
+    console.error('❌ Erro ao gerar informe:', err);
     cleanup(docxPath);
     res.status(500).json({ erro: 'Erro ao gerar informe', detalhes: err.message });
   }
@@ -95,21 +121,86 @@ app.post('/api/informe/gerar-pdf', async (req, res) => {
   try {
     fs.writeFileSync(jsonPath, JSON.stringify(dados));
     await runPython('gerarPDF.py', [jsonPath, pdfPath]);
-    res.download(pdfPath, `Informe_${slugify(dados.beneficiario.nome)}_${dados.anoCalendario || ''}.pdf`, () => cleanup(jsonPath, pdfPath));
+    res.download(pdfPath, `Informe_${slugify(dados.beneficiario.nome)}_${dados.anoCalendario || ''}.pdf`, (err) => {
+      if (err) console.error('❌ Erro no download:', err);
+      cleanup(jsonPath, pdfPath);
+    });
   } catch (err) {
+    console.error('❌ Erro ao gerar PDF:', err);
     cleanup(jsonPath, pdfPath);
     res.status(500).json({ erro: 'Erro ao gerar PDF', detalhes: err.message });
   }
 });
 
 app.post('/api/lote/preview', upload.single('arquivo'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ erro: 'Arquivo não enviado' });
+  console.log('\n📤 === UPLOAD RECEBIDO ===');
+  
+  if (!req.file) {
+    console.log('❌ Nenhum arquivo recebido');
+    return res.status(400).json({ erro: 'Arquivo não enviado' });
+  }
+  
   const xlsxPath = req.file.path;
+  
+  // 🔍 LOGS DE DIAGNÓSTICO DETALHADOS
+  console.log('📋 Informações do arquivo:');
+  console.log('  - Nome original:', req.file.originalname);
+  console.log('  - Caminho salvo:', xlsxPath);
+  console.log('  - Tamanho reportado:', req.file.size, 'bytes');
+  console.log('  - Mimetype:', req.file.mimetype);
+  console.log('  - Encoding:', req.file.encoding);
+  
   try {
+    // Verificar se o arquivo existe no disco
+    if (!fs.existsSync(xlsxPath)) {
+      throw new Error(`Arquivo não encontrado no disco: ${xlsxPath}`);
+    }
+    
+    const stats = fs.statSync(xlsxPath);
+    console.log('  - Tamanho no disco:', stats.size, 'bytes');
+    
+    if (stats.size === 0) {
+      throw new Error('Arquivo está vazio (0 bytes)');
+    }
+    
+    // Verificar os primeiros bytes (assinatura de arquivo .xlsx)
+    const buffer = fs.readFileSync(xlsxPath);
+    const header = buffer.slice(0, 4).toString('hex');
+    console.log('  - Header do arquivo (hex):', header);
+    
+    const isValidXlsx = header === '504b0304';
+    console.log('  - É .xlsx válido?', isValidXlsx ? '✅ SIM' : '❌ NÃO');
+    
+    if (!isValidXlsx) {
+      // Mostrar preview do conteúdo para diagnóstico
+      const preview = buffer.slice(0, 100).toString('utf-8').replace(/[^\x20-\x7E]/g, '.');
+      console.log('  - Preview do conteúdo:', preview);
+      throw new Error(`Arquivo não é um .xlsx válido (header: ${header}). Preview: ${preview}`);
+    }
+    
+    console.log('🐍 Chamando parseExcel.py...');
     const stdout = await runPython('parseExcel.py', [xlsxPath]);
-    res.json(JSON.parse(stdout));
+    const resultado = JSON.parse(stdout);
+    
+    console.log(`✅ Preview processado: ${resultado.total || 0} registros encontrados`);
+    console.log('='.repeat(50) + '\n');
+    
+    res.json(resultado);
   } catch (err) {
-    res.status(500).json({ erro: 'Erro ao processar Excel', detalhes: err.message });
+    console.error('❌ ERRO NO PROCESSAMENTO:', err.message);
+    console.log('='.repeat(50) + '\n');
+    
+    res.status(500).json({ 
+      erro: 'Erro ao processar Excel', 
+      detalhes: err.message,
+      debug: {
+        nomeOriginal: req.file.originalname,
+        tamanhoReportado: req.file.size,
+        caminho: xlsxPath,
+        arquivoExiste: fs.existsSync(xlsxPath),
+        tamanhoDisco: fs.existsSync(xlsxPath) ? fs.statSync(xlsxPath).size : 0
+      }
+    });
   } finally {
     cleanup(xlsxPath);
   }
@@ -118,11 +209,15 @@ app.post('/api/lote/preview', upload.single('arquivo'), async (req, res) => {
 app.post('/api/lote/gerar', async (req, res) => {
   const { socios } = req.body;
   if (!Array.isArray(socios) || socios.length === 0) return res.status(400).json({ erro: 'Nenhum sócio informado' });
+  
+  console.log(`\n📦 Gerando lote com ${socios.length} sócios...`);
+  
   const ts      = Date.now();
   const dirLote = path.join(TEMP, `lote_${ts}`);
   const zipPath = path.join(TEMP, `informes_${ts}.zip`);
   fs.mkdirSync(dirLote);
   const erros = [];
+  
   try {
     for (let i = 0; i < socios.length; i++) {
       const s = socios[i];
@@ -130,26 +225,38 @@ app.post('/api/lote/gerar', async (req, res) => {
       const jsonPath = path.join(dirLote, `dados_${i}.json`);
       const nomeSocio = slugify(s.beneficiario?.nome || `socio_${i+1}`);
       const pdfPath   = path.join(dirLote, `${String(i+1).padStart(3,'0')}_${nomeSocio}.pdf`);
+      
       try {
         fs.writeFileSync(jsonPath, JSON.stringify(s));
         await runPython('gerarPDF.py', [jsonPath, pdfPath]);
+        console.log(`  ✅ [${i+1}/${socios.length}] PDF gerado: ${nomeSocio}`);
         cleanup(jsonPath);
       } catch (err) {
+        console.error(`  ❌ [${i+1}/${socios.length}] Erro: ${s.beneficiario?.nome} - ${err.message}`);
         erros.push({ socio: s.beneficiario?.nome || `#${i+1}`, erro: err.message });
         cleanup(jsonPath);
       }
     }
+    
     if (erros.length > 0) {
       fs.writeFileSync(path.join(dirLote, 'ERROS.txt'), erros.map(e => `${e.socio}: ${e.erro}`).join('\n'));
+      console.log(`⚠️ ${erros.length} erro(s) registrados`);
     }
+    
+    console.log(`🗜️ Compactando ZIP...`);
     await new Promise((resolve, reject) => {
       exec(`cd "${dirLote}" && zip -r "${zipPath}" .`, err => err ? reject(err) : resolve());
     });
-    res.download(zipPath, `Informes_Lote_${new Date().toISOString().slice(0,10)}.zip`, () => {
+    
+    console.log(`✅ Lote concluído: ${zipPath}`);
+    
+    res.download(zipPath, `Informes_Lote_${new Date().toISOString().slice(0,10)}.zip`, (err) => {
+      if (err) console.error('❌ Erro no download:', err);
       cleanup(zipPath);
       fs.rmSync(dirLote, { recursive: true, force: true });
     });
   } catch (err) {
+    console.error('❌ Erro ao gerar lote:', err);
     fs.rmSync(dirLote, { recursive: true, force: true });
     cleanup(zipPath);
     res.status(500).json({ erro: 'Erro ao gerar lote', detalhes: err.message });
@@ -157,7 +264,8 @@ app.post('/api/lote/gerar', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n Servidor: http://localhost:${PORT}`);
+  console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
+  console.log('📋 Endpoints disponíveis:');
   console.log('  GET  /api/health');
   console.log('  GET  /api/modelo-excel');
   console.log('  POST /api/informe/gerar');

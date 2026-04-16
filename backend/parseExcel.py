@@ -8,6 +8,7 @@ Uso: python3 parseExcel.py <arquivo.xlsx>
 import sys
 import json
 import re
+import os
 from openpyxl import load_workbook
 
 CAMPOS_NUMERICOS = {
@@ -63,9 +64,44 @@ def limpar_cnpj(val):
 def limpar_cpf(val):
     return re.sub(r"\D", "", str(val or ""))
 
+def verificar_arquivo(caminho):
+    """Verificações iniciais do arquivo"""
+    if not os.path.exists(caminho):
+        return {"erro": f"Arquivo não encontrado: {caminho}"}
+    
+    tamanho = os.path.getsize(caminho)
+    if tamanho == 0:
+        return {"erro": f"Arquivo vazio (0 bytes)"}
+    
+    # Verificar assinatura do arquivo
+    with open(caminho, 'rb') as f:
+        header = f.read(4)
+        if header[:2] != b'PK':
+            # Mostrar preview do conteúdo para diagnóstico
+            f.seek(0)
+            preview = f.read(200).decode('utf-8', errors='ignore')
+            return {
+                "erro": f"Arquivo não é um .xlsx válido (header: {header.hex()})",
+                "tamanho": tamanho,
+                "preview": preview[:100]
+            }
+    
+    return {"ok": True, "tamanho": tamanho}
+
 def parse(caminho):
-    wb = load_workbook(caminho, data_only=True)
-    ws = wb.active
+    # Verificações iniciais
+    verificacao = verificar_arquivo(caminho)
+    if "erro" in verificacao:
+        return verificacao
+    
+    try:
+        wb = load_workbook(caminho, data_only=True)
+        ws = wb.active
+    except Exception as e:
+        return {
+            "erro": f"Erro ao abrir Excel: {str(e)}",
+            "tipo": type(e).__name__
+        }
 
     # Detecta linha de cabeçalho (primeira linha que tem "ANO_CALENDARIO")
     header_row = None
@@ -105,7 +141,10 @@ def parse(caminho):
             val = row[header_map[col_nome]]
 
             if secao == "meta":
-                socio["anoCalendario"] = int(val) if val else None
+                try:
+                    socio["anoCalendario"] = int(val) if val else None
+                except:
+                    socio["anoCalendario"] = None
             elif secao == "fontePagadora":
                 if col_nome == "CNPJ_EMPRESA":
                     socio["fontePagadora"][chave] = limpar_cnpj(val)
@@ -128,6 +167,8 @@ def parse(caminho):
             erros_linha.append("NOME_SOCIO vazio")
         if not socio["beneficiario"].get("cpf"):
             erros_linha.append("CPF_SOCIO vazio")
+        if not socio.get("anoCalendario"):
+            erros_linha.append("ANO_CALENDARIO inválido")
 
         if erros_linha:
             erros.append({"linha": row_idx, "erros": erros_linha, "nome": socio["beneficiario"].get("nome", "?")})
@@ -143,7 +184,9 @@ def parse(caminho):
 
     return {
         "total": len(socios),
-        "socios": socios,
+        "registros": socios,
+        "validos": len(socios),
+        "invalidos": len(erros),
         "erros": erros,
     }
 
@@ -151,5 +194,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(json.dumps({"erro": "Informe o caminho do arquivo Excel"}))
         sys.exit(1)
+    
     result = parse(sys.argv[1])
     print(json.dumps(result, ensure_ascii=False, indent=2))

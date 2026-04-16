@@ -38,29 +38,71 @@ export default function ImportacaoLote({ onVoltar }) {
   const inputRef                  = useRef();
 
   // ─── Upload e validação ──────────────────────────────────────────────────────
-  async function handleValidar() {
-    if (!arquivo) return;
-    setErro(null);
-
-    const form = new FormData();
-    form.append("arquivo", arquivo);
-
-    try {
-      const res  = await fetch(`${API_URL}/api/lote/preview`, {
-        method: "POST",
-        body: form
-        });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.erro || "Erro na validação");
-
-      setResultado(data);
-      setSel(data.registros.map((_, i) => i)); // seleciona todos por padrão
-      setStep(STEPS.PREVIEW);
-    } catch (e) {
-      setErro(e.message);
-    }
+async function handleValidar() {
+  if (!arquivo) return;
+  setErro(null);
+  
+  // 🔍 Verificação detalhada
+  console.log('📤 === VALIDANDO ARQUIVO ===');
+  console.log('📋 Arquivo:', {
+    name: arquivo.name,
+    size: arquivo.size,
+    type: arquivo.type
+  });
+  
+  // Verificações
+  if (!arquivo.name.match(/\.xlsx$/i)) {
+    const msg = 'O arquivo deve ter extensão .xlsx';
+    console.error('❌', msg);
+    setErro(msg);
+    return;
   }
+  
+  if (arquivo.size < 1000) {
+    const msg = `Arquivo muito pequeno (${arquivo.size} bytes). Pode estar vazio.`;
+    console.error('❌', msg);
+    setErro(msg);
+    return;
+  }
+
+  const form = new FormData();
+  form.append("arquivo", arquivo, arquivo.name);
+  
+  console.log('📤 Enviando para:', `${API_URL}/api/lote/preview`);
+
+  try {
+    const res = await fetch(`${API_URL}/api/lote/preview`, {
+      method: "POST",
+      body: form
+    });
+    
+    console.log('📥 Resposta:', {
+      status: res.status,
+      ok: res.ok
+    });
+    
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error('❌ Erro na resposta:', data);
+      throw new Error(data.erro || data.detalhes || "Erro na validação");
+    }
+
+    console.log('✅ Validação OK:', {
+      total: data.total,
+      validos: data.validos,
+      invalidos: data.invalidos
+    });
+    
+    setResultado(data);
+    setSel(data.registros.map((_, i) => i));
+    setStep(STEPS.PREVIEW);
+  } catch (e) {
+    console.error('❌ Erro:', e);
+    setErro(e.message);
+  }
+  console.log('='.repeat(50));
+}
 
   // ─── Geração em lote ────────────────────────────────────────────────────────
   async function handleGerar() {
