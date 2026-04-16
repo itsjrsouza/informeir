@@ -43,10 +43,13 @@ export default function ImportacaoLote({ onVoltar }) {
     setErro(null);
 
     const form = new FormData();
-    form.append("planilha", arquivo);
+    form.append("arquivo", arquivo);
 
     try {
-      const res  = await fetch(`${API_URL}/api/lote/validar`, { method: "POST", body: form });
+      const res  = await fetch(`${API_URL}/api/lote/preview`, {
+        method: "POST",
+        body: form
+        });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.erro || "Erro na validação");
@@ -77,7 +80,7 @@ export default function ImportacaoLote({ onVoltar }) {
       const res = await fetch(`${API_URL}/api/lote/gerar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ registros: registrosSelecionados }),
+        body: JSON.stringify({ socios: registrosSelecionados }),
       });
 
       clearInterval(interval);
@@ -109,9 +112,9 @@ export default function ImportacaoLote({ onVoltar }) {
   }
 
   // ─── Download do modelo ──────────────────────────────────────────────────────
-  function handleBaixarModelo() {
-    window.open(`${API_URL}/api/lote/modelo`, "_blank");
-  }
+ function handleBaixarModelo() {
+  window.open(`${API_URL}/api/modelo-excel`, "_blank");
+}
 
   // ─── Seleção de registros ────────────────────────────────────────────────────
   function toggleSel(i) {
