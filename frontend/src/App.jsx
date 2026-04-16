@@ -42,18 +42,66 @@ function AbaIndividual(){
   const setF=k=>v=>setFonte(p=>({...p,[k]:v}));
   const setB=k=>v=>setBenef(p=>({...p,[k]:v}));
   const setR=k=>v=>setRend(p=>({...p,[k]:v}));
-  async function submit(fmt){
-    setErro(null);setOk(false);setLoad(fmt);
-    try{
-      const endpoint=fmt==="pdf"?"/api/informe/gerar-pdf":"/api/informe/gerar";
-      const res=await fetch(API_URL+endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({anoCalendario:ano,fontePagadora:fonte,beneficiario:benef,rendimentos:rend})});
-      if(!res.ok){const d=await res.json();throw new Error(d.erro)}
-      const blob=await res.blob();
-      const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:`Informe_${ano}.${fmt==="pdf"?"pdf":"docx"}`});
-      document.body.appendChild(a);a.click();a.remove();
-      setOk(true);
-    }catch(e){setErro(e.message)}finally{setLoad(null)}
+  
+async function submit(fmt){
+  setErro(null);
+  setOk(false);
+  setLoad(fmt);
+  
+  try{
+    const endpoint = fmt === "pdf" ? "/api/informe/gerar-pdf" : "/api/informe/gerar";
+    
+    console.log(`📤 Enviando requisição ${fmt.toUpperCase()} para:`, endpoint);
+    
+    const res = await fetch(API_URL + endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        anoCalendario: ano,
+        fontePagadora: fonte,
+        beneficiario: benef,
+        rendimentos: rend
+      })
+    });
+    
+    console.log('📥 Resposta recebida:', {
+      status: res.status,
+      ok: res.ok,
+      contentType: res.headers.get('content-type')
+    });
+    
+    if(!res.ok){
+      const d = await res.json();
+      throw new Error(d.erro || d.detalhes || 'Erro desconhecido');
+    }
+    
+    // 🔑 CRUCIAL: Tratar a resposta como blob
+    const blob = await res.blob();
+    console.log('📦 Blob recebido:', {
+      size: blob.size,
+      type: blob.type
+    });
+    
+    // Criar URL do blob e fazer download
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Informe_${ano}.${fmt === "pdf" ? "pdf" : "docx"}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    console.log('✅ Download iniciado');
+    setOk(true);
+  } catch(e) {
+    console.error('❌ Erro:', e);
+    setErro(e.message);
+  } finally {
+    setLoad(null);
   }
+}
+
   const sec=n=>REND_FIELDS.filter(f=>f.sec===n);
   return(<div>
     <div className="card">

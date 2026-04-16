@@ -90,24 +90,36 @@ app.get('/api/modelo-excel', async (req, res) => {
   }
 });
 
-app.post('/api/informe/gerar', async (req, res) => {
+app.post('/api/informe/gerar-pdf', async (req, res) => {
   const dados = req.body;
   dados.responsavel = { nome: 'NELSON FERNANDES DE SOUZA JUNIOR', data: '28.02.2026' };
-  if (!dados.fontePagadora?.cnpj) return res.status(400).json({ erro: 'CNPJ obrigatório' });
-  if (!dados.fontePagadora?.razaoSocial) return res.status(400).json({ erro: 'Razão Social obrigatória' });
-  if (!dados.beneficiario?.nome) return res.status(400).json({ erro: 'Nome do beneficiário obrigatório' });
-  if (!dados.beneficiario?.cpf) return res.status(400).json({ erro: 'CPF obrigatório' });
-  const docxPath = path.join(TEMP, `informe_${Date.now()}.docx`);
+  
+  if (!dados.fontePagadora?.cnpj || !dados.beneficiario?.nome) {
+    return res.status(400).json({ erro: 'Dados incompletos' });
+  }
+  
+  const ts = Date.now();
+  const jsonPath = path.join(TEMP, `dados_${ts}.json`);
+  const pdfPath  = path.join(TEMP, `informe_${ts}.pdf`);
+  
   try {
-    await gerarInforme(dados, docxPath);
-    res.download(docxPath, `Informe_${slugify(dados.beneficiario.nome)}_${dados.anoCalendario || ''}.docx`, (err) => {
+    fs.writeFileSync(jsonPath, JSON.stringify(dados));
+    await runPython('gerarPDF.py', [jsonPath, pdfPath]);
+    
+    // Headers para forçar download no navegador
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Informe_${slugify(dados.beneficiario.nome)}_${dados.anoCalendario || ''}.pdf"`);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    
+    // Enviar arquivo
+    res.download(pdfPath, `Informe_${slugify(dados.beneficiario.nome)}_${dados.anoCalendario || ''}.pdf`, (err) => {
       if (err) console.error('❌ Erro no download:', err);
-      cleanup(docxPath);
+      cleanup(jsonPath, pdfPath);
     });
   } catch (err) {
-    console.error('❌ Erro ao gerar informe:', err);
-    cleanup(docxPath);
-    res.status(500).json({ erro: 'Erro ao gerar informe', detalhes: err.message });
+    console.error('❌ Erro ao gerar PDF:', err);
+    cleanup(jsonPath, pdfPath);
+    res.status(500).json({ erro: 'Erro ao gerar PDF', detalhes: err.message });
   }
 });
 
