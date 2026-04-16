@@ -15,6 +15,7 @@ const path     = require('path');
 const fs       = require('fs');
 const { execFile, exec } = require('child_process');
 const { gerarInforme }   = require('./gerarInforme');
+const AdmZip = require('adm-zip');
 
 const app    = express();
 const PORT   = process.env.PORT || 3001;
@@ -218,31 +219,39 @@ app.post('/api/lote/preview', upload.single('arquivo'), async (req, res) => {
   }
 });
 
+const AdmZip = require('adm-zip'); // Adicione no topo do server.js
+
+// ... (todo o código anterior permanece igual até a rota)
+
 app.post('/api/lote/gerar', async (req, res) => {
   const { socios } = req.body;
-  if (!Array.isArray(socios) || socios.length === 0) return res.status(400).json({ erro: 'Nenhum sócio informado' });
+  if (!Array.isArray(socios) || socios.length === 0) {
+    return res.status(400).json({ erro: 'Nenhum sócio informado' });
+  }
   
   console.log(`\n📦 Gerando lote com ${socios.length} sócios...`);
   
-  const ts      = Date.now();
+  const ts = Date.now();
   const dirLote = path.join(TEMP, `lote_${ts}`);
   const zipPath = path.join(TEMP, `informes_${ts}.zip`);
+  
   fs.mkdirSync(dirLote);
   const erros = [];
   
   try {
+    // Gera cada PDF individual
     for (let i = 0; i < socios.length; i++) {
       const s = socios[i];
       s.responsavel = { nome: 'NELSON FERNANDES DE SOUZA JUNIOR', data: '28.02.2026' };
       const jsonPath = path.join(dirLote, `dados_${i}.json`);
       const nomeSocio = slugify(s.beneficiario?.nome || `socio_${i+1}`);
-      const pdfPath   = path.join(dirLote, `${String(i+1).padStart(3,'0')}_${nomeSocio}.pdf`);
+      const pdfPath = path.join(dirLote, `${String(i+1).padStart(3,'0')}_${nomeSocio}.pdf`);
       
       try {
         fs.writeFileSync(jsonPath, JSON.stringify(s));
         await runPython('gerarPDF.py', [jsonPath, pdfPath]);
         console.log(`  ✅ [${i+1}/${socios.length}] PDF gerado: ${nomeSocio}`);
-        cleanup(jsonPath);
+        cleanup(jsonPath); // Remove o JSON após gerar o PDF
       } catch (err) {
         console.error(`  ❌ [${i+1}/${socios.length}] Erro: ${s.beneficiario?.nome} - ${err.message}`);
         erros.push({ socio: s.beneficiario?.nome || `#${i+1}`, erro: err.message });
@@ -250,25 +259,31 @@ app.post('/api/lote/gerar', async (req, res) => {
       }
     }
     
+    // Registra erros se houver
     if (erros.length > 0) {
-      fs.writeFileSync(path.join(dirLote, 'ERROS.txt'), erros.map(e => `${e.socio}: ${e.erro}`).join('\n'));
-      console.log(`⚠️ ${erros.length} erro(s) registrados`);
+      const errosPath = path.join(dirLote, 'ERROS.txt');
+      fs.writeFileSync(errosPath, erros.map(e => `${e.socio}: ${e.erro}`).join('\n'));
+      console.log(`⚠️ ${erros.length} erro(s) registrados em ERROS.txt`);
     }
     
-    console.log(`🗜️ Compactando ZIP...`);
-    await new Promise((resolve, reject) => {
-      exec(`cd "${dirLote}" && zip -r "${zipPath}" .`, err => err ? reject(err) : resolve());
-    });
+    // 🗜️ Cria o ZIP usando adm-zip (sem depender de comando externo)
+    console.log(`🗜️ Compactando ZIP com adm-zip...`);
+    const zip = new AdmZip();
+    zip.addLocalFolder(dirLote);
+    zip.writeZip(zipPath);
     
-    console.log(`✅ Lote concluído: ${zipPath}`);
+    console.log(`✅ Lote concluído: ${zipPath} (${fs.statSync(zipPath).size} bytes)`);
     
+    // Envia o arquivo para download
     res.download(zipPath, `Informes_Lote_${new Date().toISOString().slice(0,10)}.zip`, (err) => {
       if (err) console.error('❌ Erro no download:', err);
+      // Limpeza após o download (ou em caso de erro)
       cleanup(zipPath);
       fs.rmSync(dirLote, { recursive: true, force: true });
     });
   } catch (err) {
     console.error('❌ Erro ao gerar lote:', err);
+    // Limpeza em caso de falha geral
     fs.rmSync(dirLote, { recursive: true, force: true });
     cleanup(zipPath);
     res.status(500).json({ erro: 'Erro ao gerar lote', detalhes: err.message });
