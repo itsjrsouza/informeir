@@ -116,6 +116,8 @@ def gerar_pdf(dados, output_path):
             ('RIGHTPADDING', (0,0), (-1,-1), 4),
             ('TOPPADDING', (0,0), (-1,-1), 3),
             ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            # Alinha a coluna de valores (índice 1) à direita
+            ('ALIGN', (1,0), (1,-1), 'RIGHT'),
         ]
         if header_style:
             style.extend(header_style)
