@@ -56,7 +56,7 @@ function AbaIndividual(){
   const [responsavel, setResponsavel] = useState({
     nome: "",
     data: "",
-    assinatura: "Isento conforme IN RFB 1215/2011"
+    assinatura: "Isento conforme IN RFB 1215/2011"  // fixo
   });
   const [infoComplementar, setInfoComplementar] = useState("");
   const [loading, setLoading] = useState(false);
@@ -204,7 +204,7 @@ function AbaIndividual(){
             <input type="text" value={responsavel.data} onChange={e=>setResp("data")(e.target.value)} placeholder="DD/MM/AAAA" />
           </Field>
           <Field label="Assinatura">
-            <input value={responsavel.assinatura} onChange={e=>setResp("assinatura")(e.target.value)} placeholder="Ex: Isento conforme IN..." />
+            <input value={responsavel.assinatura} readOnly className="ro" />
           </Field>
         </div>
       </div>
@@ -216,7 +216,7 @@ function AbaIndividual(){
           setFonte({razaoSocial:"",cnpj:""});
           setBenef({nome:"",cpf:""});
           setRend(INIT_REND);
-          setResponsavel({nome:"",data:"", assinatura:"Isento conforme IN RFB 1215/2011"});
+          setResponsavel({nome:"", data:"", assinatura:"Isento conforme IN RFB 1215/2011"});
           setInfoComplementar("");
           setErro(null); setOk(false);
         }}>Limpar</button>
@@ -277,26 +277,24 @@ function AbaLote(){
     finally{ setLG(false); }
   }
 
-  async function baixarPDFIndividual(socio) {
-    try {
+  async function baixarPDFIndividual(socio, nome){
+    try{
+      const payload = { ...socio };
       const res = await fetch(API_URL + "/api/informe/gerar-pdf", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(socio)
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.erro || "Erro ao gerar PDF");
-      }
+      if(!res.ok) throw new Error("Erro ao gerar PDF individual");
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `Informe_${socio.beneficiario?.nome}_${socio.anoCalendario}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      alert("Erro ao gerar PDF: " + e.message);
+      a.download = `Informe_${nome}_${socio.anoCalendario || ''}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch(e){
+      alert("Erro ao baixar PDF individual: " + e.message);
     }
   }
 
@@ -329,42 +327,24 @@ function AbaLote(){
         {socios.length>0&&(
           <div className="preview-table-wrap">
             <table className="preview-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Exercício</th>
-                  <th>Empresa</th>
-                  <th>CNPJ</th>
-                  <th>Sócio</th>
-                  <th>CPF</th>
-                  <th>Tributáveis</th>
-                  <th>Lucros/Div.</th>
-                  <th>IRRF</th>
-                  <th></th>
-                  <th></th>
+              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>Sócio</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th><th></th></tr></thead>
+              <tbody>{socios.map((s,i)=>(
+                <tr key={i}>
+                  <td>{i+1}</td>
+                  <td>{s.exercicio || (s.anoCalendario ? s.anoCalendario+1 : '')}</td>
+                  <td>{s.fontePagadora?.razaoSocial}</td>
+                  <td className="mono">{fmtCNPJ(s.fontePagadora?.cnpj)}</td>
+                  <td>{s.beneficiario?.nome}</td>
+                  <td className="mono">{fmtCPF(s.beneficiario?.cpf)}</td>
+                  <td className="num">{fmtBRL(s.rendimentos?.tributaveis)}</td>
+                  <td className="num">{fmtBRL(s.rendimentos?.lucrosDividendos)}</td>
+                  <td className="num">{fmtBRL(s.rendimentos?.irrf)}</td>
+                  <td>
+                    <button className="btn-rm" onClick={()=>baixarPDFIndividual(s, s.beneficiario?.nome)} title="Baixar PDF individual">📄</button>
+                  </td>
+                  <td><button className="btn-rm" onClick={()=>setSocios(s=>s.filter((_,j)=>j!==i))}>✕</button></td>
                 </tr>
-              </thead>
-              <tbody>
-                {socios.map((s,i)=>(
-                  <tr key={i}>
-                    <td>{i+1}</td>
-                    <td>{s.exercicio || (s.anoCalendario ? s.anoCalendario+1 : '')}</td>
-                    <td>{s.fontePagadora?.razaoSocial}</td>
-                    <td className="mono">{fmtCNPJ(s.fontePagadora?.cnpj)}</td>
-                    <td>{s.beneficiario?.nome}</td>
-                    <td className="mono">{fmtCPF(s.beneficiario?.cpf)}</td>
-                    <td className="num">{fmtBRL(s.rendimentos?.tributaveis)}</td>
-                    <td className="num">{fmtBRL(s.rendimentos?.lucrosDividendos)}</td>
-                    <td className="num">{fmtBRL(s.rendimentos?.irrf)}</td>
-                    <td>
-                      <button className="btn-outline" style={{padding: '4px 8px', fontSize: '11px'}} onClick={() => baixarPDFIndividual(s)}>
-                        📄 PDF
-                      </button>
-                    </td>
-                    <td><button className="btn-rm" onClick={()=>setSocios(s=>s.filter((_,j)=>j!==i))}>✕</button></td>
-                  </tr>
-                ))}
-              </tbody>
+              ))}</tbody>
             </table>
           </div>
         )}
@@ -449,7 +429,7 @@ textarea{resize:vertical}
 .btn-primary{background:var(--rf-blue);color:#fff;box-shadow:0 4px 12px rgba(26,60,110,.3)}.btn-primary:hover:not(:disabled){background:var(--rf-mid);transform:translateY(-1px)}.btn-primary:disabled{opacity:.6;cursor:not-allowed}
 .btn-outline{background:#fff;color:var(--rf-mid);border:1.5px solid var(--rf-mid)}.btn-outline:hover{background:#eef4ff}
 .btn-sec{background:#fff;color:var(--muted);border:1.5px solid var(--border)}.btn-sec:hover{background:var(--bg)}
-.btn-rm{background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px}.btn-rm:hover{color:var(--error);background:#fef2f2}
+.btn-rm{background:none;border:none;color:#aaa;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px}.btn-rm:hover{color:var(--error);background:#fef2f2}
 .step-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .step-badge{width:32px;height:32px;border-radius:50%;background:var(--rf-blue);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .step-header h3{font-size:15px;font-weight:600}.step-sub{font-size:12px;color:var(--muted);margin-top:2px}
