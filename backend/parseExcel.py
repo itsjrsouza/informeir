@@ -31,6 +31,10 @@ COL_MAP = {
     "RRA_PENSAO": ("rraPensao", "rendimentos"),
     "RRA_IRRF": ("rraIrrf", "rendimentos"),
     "RRA_ISENTOS": ("rraIsentos", "rendimentos"),
+    "INFO_COMPLEMENTARES": ("informacoesComplementares", "info"),
+    "RESP_NOME": ("responsavelNome", "responsavel"),
+    "RESP_DATA": ("responsavelData", "responsavel"),
+    "RESP_ASSINATURA": ("responsavelAssinatura", "responsavel"),
 }
 
 PALAVRAS_ROTULO = {'ano-calendário', 'ano calendário', 'ano', 'exercício', 'nome completo', 'cnpj', 'cpf', 'razão social'}
@@ -78,7 +82,8 @@ def parse(caminho):
     socios, erros = [], []
     for idx, row in df.iterrows():
         if linha_ignoravel(row): continue
-        socio = {"fontePagadora": {}, "beneficiario": {}, "rendimentos": {}}
+        socio = {"fontePagadora": {}, "beneficiario": {}, "rendimentos": {}, "responsavel": {}}
+        info = ""
         erros_linha = []
         for col_nome, (chave, secao) in COL_MAP.items():
             if col_nome not in df.columns: continue
@@ -95,6 +100,12 @@ def parse(caminho):
                     socio["rendimentos"][chave] = val
                 else:
                     socio["rendimentos"][chave] = limpar_numero(val)
+            elif secao == "info":
+                info = val
+            elif secao == "responsavel":
+                socio["responsavel"][chave.replace('responsavel','').lower()] = val
+
+        socio["informacoesComplementares"] = info
         if not socio.get("exercicio") and socio.get("anoCalendario"): socio["exercicio"] = socio["anoCalendario"] + 1
         if not socio["fontePagadora"].get("cnpj"): erros_linha.append("CNPJ_EMPRESA vazio")
         if not socio["fontePagadora"].get("razaoSocial"): erros_linha.append("RAZAO_SOCIAL vazia")
