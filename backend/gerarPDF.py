@@ -1,37 +1,57 @@
 #!/usr/bin/env python3
-import sys, json, os
+# -*- coding: utf-8 -*-
+"""
+gerarPDF.py
+Recebe JSON de um informe e gera o PDF via reportlab.
+Uso: python3 gerarPDF.py <dados.json> <saida.pdf>
+"""
+
+import sys
+import json
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
-# Usar Helvetica (fonte padrão sempre disponível) com tamanho 10
-FONT_NAME = 'Helvetica'
+# Tentar registrar Tahoma (fallback para Helvetica se não existir)
+try:
+    pdfmetrics.registerFont(TTFont('Tahoma', 'Tahoma.ttf'))
+    FONT_NAME = 'Tahoma'
+except:
+    FONT_NAME = 'Helvetica'
 
 def fmt_brl(val):
-    if val is None or str(val).strip() == "": return "0,00"
+    """Formata valor monetário brasileiro, retornando string com 2 casas decimais."""
+    if val is None or str(val).strip() == "":
+        return "0,00"
     s = str(val).strip().replace("R$", "").strip()
-    if "," in s and "." in s: s = s.replace(".", "").replace(",", ".")
-    elif "," in s: s = s.replace(",", ".")
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
     try:
         f = float(s)
         inteiro, decimal = f"{f:.2f}".split('.')
         inteiro_fmt = ""
         for i, d in enumerate(reversed(inteiro)):
-            if i > 0 and i % 3 == 0: inteiro_fmt = "." + inteiro_fmt
+            if i > 0 and i % 3 == 0:
+                inteiro_fmt = "." + inteiro_fmt
             inteiro_fmt = d + inteiro_fmt
         return f"{inteiro_fmt},{decimal}"
-    except: return "0,00"
+    except Exception:
+        return "0,00"
 
 def fmt_cnpj(v):
     d = ''.join(c for c in str(v or '') if c.isdigit())
-    return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}" if len(d)==14 else v
+    return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}" if len(d) == 14 else v
 
 def fmt_cpf(v):
     d = ''.join(c for c in str(v or '') if c.isdigit())
-    return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}" if len(d)==11 else v
+    return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}" if len(d) == 11 else v
 
 def gerar_pdf(dados, output_path):
     exercicio = dados.get('exercicio', 2026)
@@ -47,12 +67,10 @@ def gerar_pdf(dados, output_path):
                            topMargin=10*mm, bottomMargin=10*mm)
 
     styles = getSampleStyleSheet()
-    # Ajustar estilo Normal existente
     styles['Normal'].fontName = FONT_NAME
     styles['Normal'].fontSize = 10
     styles['Normal'].leading = 12
 
-    # Adicionar estilos personalizados baseados no Normal
     styles.add(ParagraphStyle(name='Left', parent=styles['Normal'], alignment=TA_LEFT))
     styles.add(ParagraphStyle(name='Right', parent=styles['Normal'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
@@ -108,18 +126,20 @@ def gerar_pdf(dados, output_path):
     # Seção 1
     add_section('1. FONTE PAGADORA PESSOA JURÍDICA OU PESSOA FÍSICA',
                 [['Nome Empresarial/Nome Completo', 'CNPJ/CPF'],
-                 [fp.get('razaoSocial',''), fmt_cnpj(fp.get('cnpj',''))]],
+                 [fp.get('razaoSocial','') or ' ', fmt_cnpj(fp.get('cnpj','')) or ' ']],
                 [120*mm, 50*mm],
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
 
     # Seção 2
     add_section('2. PESSOA FÍSICA BENEFICIÁRIA DOS RENDIMENTOS',
                 [['CPF', 'Nome Completo'],
-                 [fmt_cpf(bn.get('cpf','')), bn.get('nome','')]],
+                 [fmt_cpf(bn.get('cpf','')) or ' ', bn.get('nome','') or ' ']],
                 [50*mm, 120*mm],
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
     nat_table = Table([['Natureza do Rendimento: Assalariado']], colWidths=[170*mm])
-    nat_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10)]))
+    nat_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black),
+                                   ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+                                   ('FONTSIZE', (0,0), (-1,-1), 10)]))
     story.append(nat_table)
     story.append(Spacer(1, 2*mm))
 
@@ -150,17 +170,71 @@ def gerar_pdf(dados, output_path):
                  ['03 - Outros', fmt_brl(rd.get('outrosTribExclusiva'))]],
                 [130*mm, 40*mm])
 
-    # Seção 6 - RRA
-    add_section('6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE (RRA)',
-                [['Número do Processo', rd.get('rraNumProcesso','')],
-                 ['Quantidade de Meses', rd.get('rraMeses','')],
-                 ['Total Rendimentos Tributáveis', fmt_brl(rd.get('rraTributaveis'))],
-                 ['Despesas com Ação Judicial', fmt_brl(rd.get('rraDespesasJudiciais'))],
-                 ['Contribuição Previdenciária', fmt_brl(rd.get('rraInss'))],
-                 ['Pensão Alimentícia', fmt_brl(rd.get('rraPensao'))],
-                 ['IRRF', fmt_brl(rd.get('rraIrrf'))],
-                 ['Rendimentos Isentos (Moléstia/Acidente)', fmt_brl(rd.get('rraIsentos'))]],
-                [60*mm, 110*mm])
+    # Seção 6 - RRA (Layout oficial)
+    story.append(Table([['6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)']],
+                       colWidths=[170*mm], style=[
+        ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey),
+        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('TOPPADDING', (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black)
+    ]))
+
+    # Linha 6.1: Número do Processo | Quantidade de meses | 0
+    proc = rd.get('rraNumProcesso', '')
+    meses = rd.get('rraMeses', '')
+    data_rra_top = [[
+        Paragraph('<b>6.1 - Número do Processo:</b>', styles['Left']),
+        Paragraph(f'<b>Quantidade de meses:</b> {meses}', styles['Left']),
+        '0'
+    ]]
+    t_rra_top = Table(data_rra_top, colWidths=[70*mm, 60*mm, 40*mm])
+    t_rra_top.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('ALIGN', (2,0), (2,0), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 4),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(t_rra_top)
+
+    # Linha "Natureza do Rendimento:"
+    nat_rra = Table([['Natureza do Rendimento:']], colWidths=[170*mm])
+    nat_rra.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('LEFTPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(nat_rra)
+
+    # Tabela de valores do RRA
+    data_rra = [
+        ['01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)', fmt_brl(rd.get('rraTributaveis'))],
+        ['02 - Exclusão: Despesas com a Ação Judicial', fmt_brl(rd.get('rraDespesasJudiciais'))],
+        ['03 - Dedução: Contribuição Previdenciária Oficial', fmt_brl(rd.get('rraInss'))],
+        ['04 - Dedução Pensão Alimentícia', fmt_brl(rd.get('rraPensao'))],
+        ['05 - Imposto sobre a Renda Retido na Fonte', fmt_brl(rd.get('rraIrrf'))],
+        ['06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço', fmt_brl(rd.get('rraIsentos'))]
+    ]
+    t_rra = Table(data_rra, colWidths=[130*mm, 40*mm])
+    t_rra.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 4),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+    ]))
+    story.append(t_rra)
+    story.append(Spacer(1, 2*mm))
 
     # Seção 7
     story.append(Table([['7. INFORMAÇÕES COMPLEMENTARES']], colWidths=[170*mm], style=[
@@ -188,7 +262,9 @@ def gerar_pdf(dados, output_path):
     # Seção 8
     add_section('8. RESPONSÁVEL PELAS INFORMAÇÕES',
                 [['Nome', 'Data', 'Assinatura'],
-                 [resp.get('nome', 'Não informado'), resp.get('data', '  /  /    '), Paragraph(resp.get('assinatura', 'Isento conforme IN RFB 1215/2011'), styles['Small'])]],
+                 [resp.get('nome', 'Não informado'),
+                  resp.get('data', '  /  /    '),
+                  Paragraph(resp.get('assinatura', 'Isento conforme IN RFB 1215/2011'), styles['Small'])]],
                 [70*mm, 40*mm, 60*mm])
 
     story.append(Spacer(1, 3*mm))
@@ -196,7 +272,10 @@ def gerar_pdf(dados, output_path):
     doc.build(story)
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3: sys.exit(1)
-    with open(sys.argv[1], encoding='utf-8') as f: dados = json.load(f)
+    if len(sys.argv) < 3:
+        print("Uso: python3 gerarPDF.py <dados.json> <saida.pdf>")
+        sys.exit(1)
+    with open(sys.argv[1], 'r', encoding='utf-8') as f:
+        dados = json.load(f)
     gerar_pdf(dados, sys.argv[2])
     print(f"✅ PDF gerado: {sys.argv[2]}")
