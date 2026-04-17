@@ -46,7 +46,7 @@ EXEMPLOS = [
      0.00, 0.00, 0.00, 120000.00, 0.00, 0.00, 0.00,
      7000.00, 0.00, 0.00,
      "", "", 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-     "Nada a declarar", "Nelson Fernandes", "28/02/2026", "Isento conforme IN RFB 1215/2011"],
+     "Nada a declarar", "Contador XYZ", "28/02/2026", "Isento conforme IN RFB 1215/2011"],
 ]
 
 AZUL_ESCURO, AZUL_HEADER, AZUL_CLARO, VERDE_EX, BRANCO, CINZA = "1F3864", "2563A8", "D9E1F2", "E2EFDA", "FFFFFF", "F5F5F5"
