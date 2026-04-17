@@ -170,7 +170,8 @@ def gerar_pdf(dados, output_path):
                  ['03 - Outros', fmt_brl(rd.get('outrosTribExclusiva'))]],
                 [130*mm, 40*mm])
 
-    # Seção 6 - RRA (Layout oficial)
+    # ======================== SEÇÃO 6 (RRA) – LAYOUT CORRETO ========================
+    # 1) Cabeçalho único ocupando 100% da largura
     story.append(Table([['6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)']],
                        colWidths=[170*mm], style=[
         ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey),
@@ -182,16 +183,16 @@ def gerar_pdf(dados, output_path):
         ('GRID', (0,0), (-1,-1), 0.5, colors.black)
     ]))
 
-    # Linha 6.1: Número do Processo | Quantidade de meses | 0
+    # 2) Segunda linha com 3 colunas: "6.1 - Número do Processo:" | "Quantidade de meses" | "0"
     proc = rd.get('rraNumProcesso', '')
     meses = rd.get('rraMeses', '')
-    data_rra_top = [[
+    linha_61 = [[
         Paragraph('<b>6.1 - Número do Processo:</b>', styles['Left']),
-        Paragraph(f'<b>Quantidade de meses:</b> {meses}', styles['Left']),
+        Paragraph('<b>Quantidade de meses:</b>', styles['Left']),
         '0'
     ]]
-    t_rra_top = Table(data_rra_top, colWidths=[70*mm, 60*mm, 40*mm])
-    t_rra_top.setStyle(TableStyle([
+    t_61 = Table(linha_61, colWidths=[80*mm, 60*mm, 30*mm])
+    t_61.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
         ('FONTSIZE', (0,0), (-1,-1), 10),
@@ -199,30 +200,47 @@ def gerar_pdf(dados, output_path):
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('LEFTPADDING', (0,0), (-1,-1), 4),
         ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
     ]))
-    story.append(t_rra_top)
+    story.append(t_61)
 
-    # Linha "Natureza do Rendimento:"
-    nat_rra = Table([['Natureza do Rendimento:']], colWidths=[170*mm])
-    nat_rra.setStyle(TableStyle([
+    # 3) Terceira linha assimétrica: "Natureza do Rendimento:" à esquerda, "Valores em Reais" à direita
+    linha_nat_val = [[
+        Paragraph('<b>Natureza do Rendimento:</b>', styles['Left']),
+        Paragraph('<b>Valores em Reais</b>', styles['Right'])
+    ]]
+    t_nat_val = Table(linha_nat_val, colWidths=[130*mm, 40*mm])
+    t_nat_val.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
         ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('LEFTPADDING', (0,0), (-1,-1), 4),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
     ]))
-    story.append(nat_rra)
+    story.append(t_nat_val)
 
-    # Tabela de valores do RRA
-    data_rra = [
-        ['01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)', fmt_brl(rd.get('rraTributaveis'))],
-        ['02 - Exclusão: Despesas com a Ação Judicial', fmt_brl(rd.get('rraDespesasJudiciais'))],
-        ['03 - Dedução: Contribuição Previdenciária Oficial', fmt_brl(rd.get('rraInss'))],
-        ['04 - Dedução Pensão Alimentícia', fmt_brl(rd.get('rraPensao'))],
-        ['05 - Imposto sobre a Renda Retido na Fonte', fmt_brl(rd.get('rraIrrf'))],
-        ['06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço', fmt_brl(rd.get('rraIsentos'))]
+    # 4) Tabela de itens com 2 colunas fixas (descrição à esquerda, valor à direita)
+    itens_rra = [
+        ['01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)',
+         fmt_brl(rd.get('rraTributaveis'))],
+        ['02 - Exclusão: Despesas com a Ação Judicial',
+         fmt_brl(rd.get('rraDespesasJudiciais'))],
+        ['03 - Dedução: Contribuição Previdenciária Oficial',
+         fmt_brl(rd.get('rraInss'))],
+        ['04 - Dedução Pensão Alimentícia',
+         fmt_brl(rd.get('rraPensao'))],
+        ['05 - Imposto sobre a Renda Retido na Fonte',
+         fmt_brl(rd.get('rraIrrf'))],
+        ['06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço',
+         fmt_brl(rd.get('rraIsentos'))]
     ]
-    t_rra = Table(data_rra, colWidths=[130*mm, 40*mm])
-    t_rra.setStyle(TableStyle([
+    t_itens = Table(itens_rra, colWidths=[130*mm, 40*mm])
+    t_itens.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
         ('FONTSIZE', (0,0), (-1,-1), 10),
@@ -233,8 +251,10 @@ def gerar_pdf(dados, output_path):
         ('TOPPADDING', (0,0), (-1,-1), 3),
         ('BOTTOMPADDING', (0,0), (-1,-1), 3),
     ]))
-    story.append(t_rra)
+    story.append(t_itens)
     story.append(Spacer(1, 2*mm))
+
+    # ======================== FIM DA SEÇÃO 6 ========================
 
     # Seção 7
     story.append(Table([['7. INFORMAÇÕES COMPLEMENTARES']], colWidths=[170*mm], style=[
