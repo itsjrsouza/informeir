@@ -79,7 +79,7 @@ app.get('/api/modelo-excel', async (req, res) => {
 
 app.post('/api/informe/gerar', async (req, res) => {
   const dados = req.body;
-  dados.responsavel = { nome: 'NELSON FERNANDES DE SOUZA JUNIOR', data: '28.02.2026' };
+  // Não sobrescreve mais o responsável
   if (!dados.fontePagadora?.cnpj) return res.status(400).json({ erro: 'CNPJ obrigatório' });
   if (!dados.fontePagadora?.razaoSocial) return res.status(400).json({ erro: 'Razão Social obrigatória' });
   if (!dados.beneficiario?.nome) return res.status(400).json({ erro: 'Nome do beneficiário obrigatório' });
@@ -100,7 +100,6 @@ app.post('/api/informe/gerar', async (req, res) => {
 
 app.post('/api/informe/gerar-pdf', async (req, res) => {
   const dados = req.body;
-  dados.responsavel = { nome: 'NELSON FERNANDES DE SOUZA JUNIOR', data: '28.02.2026' };
   if (!dados.fontePagadora?.cnpj || !dados.beneficiario?.nome) return res.status(400).json({ erro: 'Dados incompletos' });
   const ts = Date.now();
   const jsonPath = path.join(TEMP, `dados_${ts}.json`);
@@ -173,23 +172,19 @@ app.post('/api/lote/preview', upload.single('arquivo'), async (req, res) => {
 app.post('/api/lote/gerar', async (req, res) => {
   const { socios } = req.body;
   if (!Array.isArray(socios) || socios.length === 0) return res.status(400).json({ erro: 'Nenhum sócio informado' });
-  
   console.log(`\n📦 Gerando lote com ${socios.length} sócios...`);
-  
   const ts = Date.now();
   const dirLote = path.join(TEMP, `lote_${ts}`);
   const zipPath = path.join(TEMP, `informes_${ts}.zip`);
   fs.mkdirSync(dirLote);
   const erros = [];
-  
   try {
     for (let i = 0; i < socios.length; i++) {
       const s = socios[i];
-      s.responsavel = { nome: 'NELSON FERNANDES DE SOUZA JUNIOR', data: '28.02.2026' };
+      // Não sobrescreve responsavel
       const jsonPath = path.join(dirLote, `dados_${i}.json`);
       const nomeSocio = slugify(s.beneficiario?.nome || `socio_${i+1}`);
       const pdfPath = path.join(dirLote, `${String(i+1).padStart(3,'0')}_${nomeSocio}.pdf`);
-      
       try {
         fs.writeFileSync(jsonPath, JSON.stringify(s));
         await runPython('gerarPDF.py', [jsonPath, pdfPath]);
@@ -201,19 +196,15 @@ app.post('/api/lote/gerar', async (req, res) => {
         cleanup(jsonPath);
       }
     }
-    
     if (erros.length > 0) {
       fs.writeFileSync(path.join(dirLote, 'ERROS.txt'), erros.map(e => `${e.socio}: ${e.erro}`).join('\n'));
       console.log(`⚠️ ${erros.length} erro(s) registrados`);
     }
-    
     console.log(`🗜️ Compactando ZIP com adm-zip...`);
     const zip = new AdmZip();
     zip.addLocalFolder(dirLote);
     zip.writeZip(zipPath);
-    
     console.log(`✅ Lote concluído: ${zipPath} (${fs.statSync(zipPath).size} bytes)`);
-    
     res.download(zipPath, `Informes_Lote_${new Date().toISOString().slice(0,10)}.zip`, (err) => {
       if (err) console.error('❌ Erro no download:', err);
       cleanup(zipPath);

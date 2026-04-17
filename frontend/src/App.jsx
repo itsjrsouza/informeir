@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 function maskCNPJ(v){v=v.replace(/\D/g,"").slice(0,14);return v.replace(/^(\d{2})(\d)/,"$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1/$2").replace(/(\d{4})(\d)/,"$1-$2")}
 function maskCPF(v){v=v.replace(/\D/g,"").slice(0,11);return v.replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1-$2")}
@@ -15,136 +15,148 @@ function MaskedInput({mask,value,onChange,...rest}){return(<input value={value} 
 function CurrencyField({label,value,onChange}){return(<Field label={label}><div className="currency-wrap"><span className="currency-pre">R$</span><MaskedInput mask="brl" value={value} onChange={onChange} placeholder="0,00"/></div></Field>)}
 function Spin({large}){return<span className={large?"spin-lg":"spin"}/>}
 
-const ANOS=Array.from({length:6},(_,i)=>new Date().getFullYear()-1-i);
-const REND_FIELDS=[
-  {key:"tributaveis",label:"Rendimentos Tributáveis",sec:3},
-  {key:"inss",label:"Contribuição INSS",sec:3},
-  {key:"outrasDeducoes",label:"Outras Deduções",sec:3},
-  {key:"irrf",label:"IRRF",sec:3},
-  {key:"lucrosDividendos",label:"Lucros e Dividendos",sec:4},
-  {key:"outrosIsentos",label:"Outros Rendimentos Isentos",sec:4},
-  {key:"planoBeneficiario",label:"Plano de Saúde - Beneficiário",sec:5},
-  {key:"planoFontePagadora",label:"Plano de Saúde - Empresa",sec:5},
-  {key:"trezeRendimentos",label:"13° Salário - Tributáveis",sec:6},
-  {key:"trezeInss",label:"13° Salário - INSS",sec:6},
-  {key:"trezeIrrf",label:"13° Salário - IRRF",sec:6},
+const REND_FIELDS = [
+  {key:"tributaveis", label:"Total dos Rendimentos (inclusive férias)", sec:3},
+  {key:"inss", label:"Contribuição Previdenciária Oficial", sec:3},
+  {key:"outrasDeducoes", label:"Pensão Alimentícia / Outras Deduções", sec:3},
+  {key:"irrf", label:"Imposto sobre a renda retido na fonte", sec:3},
+  {key:"lucrosDividendos", label:"Lucros e Dividendos (item 04)", sec:4},
+  {key:"outrosIsentos", label:"Outros Rendimentos Isentos", sec:4},
+  {key:"trezeRendimentos", label:"13º Salário", sec:5},
+  {key:"trezeIrrf", label:"IRRF sobre 13º Salário", sec:5},
 ];
-const INIT_REND=Object.fromEntries(REND_FIELDS.map(f=>[f.key,""]));
+const INIT_REND = Object.fromEntries(REND_FIELDS.map(f=>[f.key,""]));
 
 function AbaIndividual(){
-  const [ano,setAno]=useState(ANOS[0]);
-  const [fonte,setFonte]=useState({razaoSocial:"",cnpj:""});
-  const [benef,setBenef]=useState({nome:"",cpf:""});
-  const [rend,setRend]=useState(INIT_REND);
-  const [loading,setLoad]=useState(null);
-  const [erro,setErro]=useState(null);
-  const [ok,setOk]=useState(false);
-  const setF=k=>v=>setFonte(p=>({...p,[k]:v}));
-  const setB=k=>v=>setBenef(p=>({...p,[k]:v}));
-  const setR=k=>v=>setRend(p=>({...p,[k]:v}));
-  
-async function submit(fmt){
-  setErro(null);
-  setOk(false);
-  setLoad(fmt);
-  
-  try{
-    const endpoint = fmt === "pdf" ? "/api/informe/gerar-pdf" : "/api/informe/gerar";
-    
-    console.log(`📤 Enviando requisição ${fmt.toUpperCase()} para:`, endpoint);
-    
-    const res = await fetch(API_URL + endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  const [exercicio, setExercicio] = useState(new Date().getFullYear() + 1);
+  const [ano, setAno] = useState(exercicio - 1);
+  const [fonte, setFonte] = useState({razaoSocial:"", cnpj:""});
+  const [benef, setBenef] = useState({nome:"", cpf:""});
+  const [rend, setRend] = useState(INIT_REND);
+  const [responsavel, setResponsavel] = useState({nome:"", data:""});
+  const [loading, setLoad] = useState(null);
+  const [erro, setErro] = useState(null);
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => { setAno(exercicio - 1); }, [exercicio]);
+
+  const setF = k => v => setFonte(p => ({...p, [k]: v}));
+  const setB = k => v => setBenef(p => ({...p, [k]: v}));
+  const setR = k => v => setRend(p => ({...p, [k]: v}));
+  const setResp = k => v => setResponsavel(p => ({...p, [k]: v}));
+
+  async function submit(fmt){
+    setErro(null); setOk(false); setLoad(fmt);
+    try{
+      const endpoint = fmt === "pdf" ? "/api/informe/gerar-pdf" : "/api/informe/gerar";
+      const payload = {
+        exercicio,
         anoCalendario: ano,
         fontePagadora: fonte,
         beneficiario: benef,
-        rendimentos: rend
-      })
-    });
-    
-    console.log('📥 Resposta recebida:', {
-      status: res.status,
-      ok: res.ok,
-      contentType: res.headers.get('content-type')
-    });
-    
-    if(!res.ok){
-      const d = await res.json();
-      throw new Error(d.erro || d.detalhes || 'Erro desconhecido');
+        rendimentos: rend,
+        responsavel: {
+          nome: responsavel.nome || "Não informado",
+          data: responsavel.data || new Date().toLocaleDateString('pt-BR')
+        }
+      };
+      const res = await fetch(API_URL + endpoint, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){
+        const d = await res.json();
+        throw new Error(d.erro || d.detalhes);
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Informe_${benef.nome}_${ano}.${fmt === "pdf" ? "pdf" : "docx"}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      setOk(true);
+    } catch(e) {
+      setErro(e.message);
+    } finally {
+      setLoad(null);
     }
-    
-    // 🔑 CRUCIAL: Tratar a resposta como blob
-    const blob = await res.blob();
-    console.log('📦 Blob recebido:', {
-      size: blob.size,
-      type: blob.type
-    });
-    
-    // Criar URL do blob e fazer download
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Informe_${ano}.${fmt === "pdf" ? "pdf" : "docx"}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    
-    console.log('✅ Download iniciado');
-    setOk(true);
-  } catch(e) {
-    console.error('❌ Erro:', e);
-    setErro(e.message);
-  } finally {
-    setLoad(null);
   }
-}
 
-  const sec=n=>REND_FIELDS.filter(f=>f.sec===n);
-  return(<div>
-    <div className="card">
-      <SectionTitle number="●" title="Ano-Calendário"/>
-      <Field label="Selecione o ano"><select value={ano} onChange={e=>setAno(Number(e.target.value))}>{ANOS.map(a=><option key={a} value={a}>{a}</option>)}</select></Field>
-    </div>
-    <div className="card">
-      <SectionTitle number="1" title="Fonte Pagadora"/>
-      <div className="g2">
-        <Field label="Razão Social"><input value={fonte.razaoSocial} onChange={e=>setF("razaoSocial")(e.target.value)} placeholder="Nome da empresa" required/></Field>
-        <Field label="CNPJ"><MaskedInput mask="cnpj" value={fonte.cnpj} onChange={setF("cnpj")} placeholder="00.000.000/0000-00" required/></Field>
-      </div>
-    </div>
-    <div className="card">
-      <SectionTitle number="2" title="Beneficiário"/>
-      <div className="g2">
-        <Field label="Nome Completo"><input value={benef.nome} onChange={e=>setB("nome")(e.target.value)} placeholder="Nome do sócio" required/></Field>
-        <Field label="CPF"><MaskedInput mask="cpf" value={benef.cpf} onChange={setB("cpf")} placeholder="000.000.000-00" required/></Field>
-      </div>
-    </div>
-    {[{n:3,t:"Rendimentos Tributáveis, Deduções e IRRF"},{n:4,t:"Rendimentos Isentos e Não Tributáveis"},{n:5,t:"Plano de Saúde Coletivo Empresarial"},{n:6,t:"Décimo Terceiro Salário"}].map(({n,t})=>(
-      <div className="card" key={n}>
-        <SectionTitle number={n} title={t}/>
-        <div className={sec(n).length===3?"g3":"g2"}>
-          {sec(n).map(f=><CurrencyField key={f.key} label={f.label} value={rend[f.key]} onChange={setR(f.key)}/>)}
+  const sec = n => REND_FIELDS.filter(f => f.sec === n);
+  return (
+    <div>
+      <div className="card">
+        <SectionTitle number="●" title="Período de Referência"/>
+        <div className="g2">
+          <Field label="Exercício (ano de entrega)">
+            <select value={exercicio} onChange={e => setExercicio(Number(e.target.value))}>
+              {Array.from({length:5}, (_,i) => new Date().getFullYear() + i).map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </Field>
+          <Field label="Ano-Calendário (automático)">
+            <input type="text" value={ano} readOnly className="ro" />
+          </Field>
         </div>
       </div>
-    ))}
-    <div className="card card-resp">
-      <SectionTitle number="7" title="Responsável pelas Informações"/>
-      <div className="g2">
-        <Field label="Nome Completo"><input value="NELSON FERNANDES DE SOUZA JUNIOR" readOnly className="ro"/></Field>
-        <Field label="Data"><input value="28.02.2026" readOnly className="ro"/></Field>
+
+      <div className="card">
+        <SectionTitle number="1" title="Fonte Pagadora Pessoa Jurídica ou Física"/>
+        <div className="g2">
+          <Field label="Nome Empresarial / Nome Completo"><input value={fonte.razaoSocial} onChange={e=>setF("razaoSocial")(e.target.value)} placeholder="Nome da empresa" required/></Field>
+          <Field label="CNPJ/CPF"><MaskedInput mask="cnpj" value={fonte.cnpj} onChange={setF("cnpj")} placeholder="00.000.000/0000-00" required/></Field>
+        </div>
+      </div>
+
+      <div className="card">
+        <SectionTitle number="2" title="Pessoa Física Beneficiária dos Rendimentos"/>
+        <div className="g2">
+          <Field label="Nome Completo"><input value={benef.nome} onChange={e=>setB("nome")(e.target.value)} placeholder="Nome do beneficiário" required/></Field>
+          <Field label="CPF"><MaskedInput mask="cpf" value={benef.cpf} onChange={setB("cpf")} placeholder="000.000.000-00" required/></Field>
+        </div>
+      </div>
+
+      {[
+        {n:3, t:"Rendimentos Tributáveis, Deduções e Imposto Retido na Fonte"},
+        {n:4, t:"Rendimentos Isentos e Não Tributáveis"},
+        {n:5, t:"Rendimentos Sujeitos à Tributação Exclusiva (13° Salário)"}
+      ].map(({n,t}) => (
+        <div className="card" key={n}>
+          <SectionTitle number={n} title={t}/>
+          <div className={sec(n).length === 3 ? "g3" : "g2"}>
+            {sec(n).map(f => <CurrencyField key={f.key} label={f.label} value={rend[f.key]} onChange={setR(f.key)}/>)}
+          </div>
+        </div>
+      ))}
+
+      <div className="card">
+        <SectionTitle number="8" title="Responsável pelas Informações"/>
+        <div className="g2">
+          <Field label="Nome Completo">
+            <input value={responsavel.nome} onChange={e=>setResp("nome")(e.target.value)} placeholder="Nome do responsável" />
+          </Field>
+          <Field label="Data">
+            <input type="text" value={responsavel.data} onChange={e=>setResp("data")(e.target.value)} placeholder="DD/MM/AAAA" />
+          </Field>
+        </div>
+      </div>
+
+      {erro && <div className="alert err">⚠️ {erro}</div>}
+      {ok && <div className="alert suc">✅ Download iniciado com sucesso!</div>}
+      <div className="actions">
+        <button className="btn-sec" onClick={()=>{
+          setFonte({razaoSocial:"",cnpj:""});
+          setBenef({nome:"",cpf:""});
+          setRend(INIT_REND);
+          setResponsavel({nome:"",data:""});
+          setErro(null); setOk(false);
+        }}>Limpar</button>
+        <button className="btn-outline" onClick={()=>submit("pdf")} disabled={!!loading}>{loading==="pdf"?<><Spin/> Gerando PDF...</>:"⬇ Baixar PDF"}</button>
+        <button className="btn-primary" onClick={()=>submit("docx")} disabled={!!loading}>{loading==="docx"?<><Spin/> Gerando...</>:"⬇ Baixar Word (.docx)"}</button>
       </div>
     </div>
-    {erro&&<div className="alert err">⚠️ {erro}</div>}
-    {ok&&<div className="alert suc">✅ Download iniciado com sucesso!</div>}
-    <div className="actions">
-      <button className="btn-sec" onClick={()=>{setFonte({razaoSocial:"",cnpj:""});setBenef({nome:"",cpf:""});setRend(INIT_REND);setErro(null);setOk(false)}}>Limpar</button>
-      <button className="btn-outline" onClick={()=>submit("pdf")} disabled={!!loading}>{loading==="pdf"?<><Spin/> Gerando PDF...</>:"⬇ Baixar PDF"}</button>
-      <button className="btn-primary" onClick={()=>submit("docx")} disabled={!!loading}>{loading==="docx"?<><Spin/> Gerando...</>:"⬇ Baixar Word (.docx)"}</button>
-    </div>
-  </div>);
+  );
 }
 
 function AbaLote(){
@@ -163,92 +175,39 @@ function AbaLote(){
     document.body.appendChild(a);a.click();a.remove();
   }
 
-async function handleUpload(e){
-  const file = e.target.files?.[0];
-  if(!file) return;
-  
-  // 🔍 Verificação detalhada no frontend
-  console.log('📤 === UPLOAD INICIADO ===');
-  console.log('📋 Arquivo selecionado:', {
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    lastModified: new Date(file.lastModified).toISOString()
-  });
-  
-  // Verificar se é realmente um .xlsx
-  if (!file.name.match(/\.xlsx$/i)) {
-    const msg = 'O arquivo deve ter extensão .xlsx';
-    console.error('❌', msg);
-    setMsgErro(msg);
-    return;
-  }
-  
-  // Verificar tamanho mínimo
-  if (file.size < 1000) {
-    const msg = `Arquivo muito pequeno (${file.size} bytes). Pode estar vazio ou corrompido.`;
-    console.error('❌', msg);
-    setMsgErro(msg);
-    return;
-  }
-  
-  setLP(true);
-  setMsgErro(null);
-  
-  const form = new FormData();
-  form.append("arquivo", file, file.name); // Adiciona nome explícito
-  
-  console.log('📤 Enviando para:', `${API_URL}/api/lote/preview`);
-  
-  try{
-    const res = await fetch(`${API_URL}/api/lote/preview`, {
-      method: "POST",
-      body: form
-    });
-    
-    console.log('📥 Resposta recebida:', {
-      status: res.status,
-      statusText: res.statusText,
-      ok: res.ok
-    });
-    
-    const data = await res.json();
-    
-    if (!res.ok) {
-      console.error('❌ Erro na resposta:', data);
-      throw new Error(data.erro || data.detalhes || 'Erro ao processar arquivo');
+  async function handleUpload(e){
+    const file = e.target.files?.[0];
+    if(!file) return;
+    console.log('📤 === UPLOAD INICIADO ===');
+    console.log('📋 Arquivo selecionado:', { name: file.name, size: file.size, type: file.type });
+    if (!file.name.match(/\.xlsx$/i)) { setMsgErro('O arquivo deve ter extensão .xlsx'); return; }
+    if (file.size < 1000) { setMsgErro(`Arquivo muito pequeno (${file.size} bytes). Pode estar vazio ou corrompido.`); return; }
+    setLP(true); setMsgErro(null);
+    const form = new FormData(); form.append("arquivo", file, file.name);
+    try{
+      const res = await fetch(`${API_URL}/api/lote/preview`, { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.erro || data.detalhes || 'Erro ao processar arquivo');
+      console.log('✅ Preview processado:', { total: data.total, validos: data.validos });
+      setSocios(data.registros || []); setErros(data.erros || []); setFase("preview");
+    } catch(e) {
+      console.error('❌ Erro no upload:', e); setMsgErro(e.message);
+    } finally {
+      setLP(false); if(fileRef.current) fileRef.current.value = "";
     }
-    
-    console.log('✅ Preview processado com sucesso:', {
-      total: data.total,
-      validos: data.validos,
-      invalidos: data.invalidos
-    });
-    
-    setSocios(data.registros || []);
-    setErros(data.erros || []);
-    setFase("preview");
-  } catch(e) {
-    console.error('❌ Erro no upload:', e);
-    setMsgErro(e.message);
-  } finally {
-    setLP(false);
-    if(fileRef.current) fileRef.current.value = "";
-    console.log('='.repeat(50));
   }
-}
 
   async function gerarLote(){
-    setLG(true);setMsgErro(null);setFase("gerando");
+    setLG(true); setMsgErro(null); setFase("gerando");
     try{
       const res=await fetch(API_URL+"/api/lote/gerar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({socios})});
-      if(!res.ok){const d=await res.json();throw new Error(d.erro)}
+      if(!res.ok){ const d=await res.json(); throw new Error(d.erro); }
       const blob=await res.blob();
       const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:`Informes_Lote_${new Date().toISOString().slice(0,10)}.zip`});
       document.body.appendChild(a);a.click();a.remove();
       setFase("pronto");
-    }catch(e){setMsgErro(e.message);setFase("preview")}
-    finally{setLG(false)}
+    }catch(e){ setMsgErro(e.message); setFase("preview"); }
+    finally{ setLG(false); }
   }
 
   return(<div>
@@ -259,7 +218,6 @@ async function handleUpload(e){
         <button className="btn-outline" onClick={baixarModelo}>⬇ Baixar Modelo Excel</button>
       </div>
     </div>
-
     <div className="card">
       <div className="step-header">
         <div className="step-badge">2</div>
@@ -271,7 +229,6 @@ async function handleUpload(e){
       </div>
       {msgErro&&<div className="alert err" style={{marginTop:12}}>⚠️ {msgErro}</div>}
     </div>
-
     {(fase==="preview"||fase==="gerando"||fase==="pronto")&&(
       <div className="card">
         <div className="step-header">
@@ -282,10 +239,11 @@ async function handleUpload(e){
         {socios.length>0&&(
           <div className="preview-table-wrap">
             <table className="preview-table">
-              <thead><tr><th>#</th><th>Empresa</th><th>CNPJ</th><th>Sócio</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th></tr></thead>
+              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>Sócio</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th></tr></thead>
               <tbody>{socios.map((s,i)=>(
                 <tr key={i}>
                   <td>{i+1}</td>
+                  <td>{s.exercicio || (s.anoCalendario ? s.anoCalendario+1 : '')}</td>
                   <td>{s.fontePagadora?.razaoSocial}</td>
                   <td className="mono">{fmtCNPJ(s.fontePagadora?.cnpj)}</td>
                   <td>{s.beneficiario?.nome}</td>
@@ -301,7 +259,6 @@ async function handleUpload(e){
         )}
       </div>
     )}
-
     {(fase==="preview"||fase==="gerando"||fase==="pronto")&&socios.length>0&&(
       <div className="card">
         <div className="step-header">
@@ -337,7 +294,7 @@ export default function App(){
         <button className={`tab ${aba==="lote"?"tab-on":""}`} onClick={()=>setAba("lote")}>📊 Importação em Lote</button>
       </div>
       <main className="main">{aba==="individual"?<AbaIndividual/>:<AbaLote/>}</main>
-      <footer className="ftr">Responsável: NELSON FERNANDES DE SOUZA JUNIOR · 28.02.2026</footer>
+      <footer className="ftr">Aprovado pela Instrução Normativa RFB nº 2.060, de 13 de dezembro de 2021.</footer>
     </div>
   </>);
 }
