@@ -170,91 +170,109 @@ def gerar_pdf(dados, output_path):
                  ['03 - Outros', fmt_brl(rd.get('outrosTribExclusiva'))]],
                 [130*mm, 40*mm])
 
-    # ======================== SEÇÃO 6 (RRA) – LAYOUT CORRETO ========================
+    # Seção 6 - RRA (Rendimentos Recebidos Acumuladamente)
     # 1) Cabeçalho único ocupando 100% da largura
-    story.append(Table([['6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)']],
-                       colWidths=[170*mm], style=[
-        ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey),
-        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('LEFTPADDING', (0,0), (-1,-1), 3),
-        ('TOPPADDING', (0,0), (-1,-1), 2),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black)
+    titulo_secao6 = Table(
+        [[Paragraph('<b>6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)</b>', styles['Normal'])]],
+        colWidths=[170*mm]
+    )
+    titulo_secao6.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
     ]))
+    story.append(titulo_secao6)
 
-    # 2) Segunda linha com 3 colunas: "6.1 - Número do Processo:" | "Quantidade de meses" | "0"
-    proc = rd.get('rraNumProcesso', '')
-    meses = rd.get('rraMeses', '')
-    linha_61 = [[
-        Paragraph('<b>6.1 - Número do Processo:</b>', styles['Left']),
-        Paragraph('<b>Quantidade de meses:</b>', styles['Left']),
-        '0'
-    ]]
-    t_61 = Table(linha_61, colWidths=[80*mm, 60*mm, 30*mm])
-    t_61.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('ALIGN', (2,0), (2,0), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 4),
-        ('RIGHTPADDING', (0,0), (-1,-1), 4),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+    # 2) Linha 6.1 com 3 colunas: "6.1 - Número do Processo:" | "Quantidade de meses" | "0"
+    proc_val = rd.get('rraNumProcesso', '')
+    meses_val = rd.get('rraMeses', '')
+    linha_61 = Table(
+        [[
+            Paragraph('<b>6.1 - Número do Processo:</b>', styles['Left']),
+            Paragraph(f'<b>Quantidade de meses:</b> {meses_val}', styles['Left']),
+            '0'
+        ]],
+        colWidths=[70*mm, 60*mm, 40*mm]
+    )
+    linha_61.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
-    story.append(t_61)
+    story.append(linha_61)
 
-    # 3) Terceira linha assimétrica: "Natureza do Rendimento:" à esquerda, "Valores em Reais" à direita
-    linha_nat_val = [[
-        Paragraph('<b>Natureza do Rendimento:</b>', styles['Left']),
-        Paragraph('<b>Valores em Reais</b>', styles['Right'])
-    ]]
-    t_nat_val = Table(linha_nat_val, colWidths=[130*mm, 40*mm])
-    t_nat_val.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('ALIGN', (1,0), (1,0), 'RIGHT'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 4),
-        ('RIGHTPADDING', (0,0), (-1,-1), 4),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+    # 3) Linha "Natureza do Rendimento:" (esquerda) | "Valores em Reais" (direita)
+    linha_natureza = Table(
+        [[
+            Paragraph('<b>Natureza do Rendimento:</b>', styles['Left']),
+            Paragraph('<b>Valores em Reais</b>', styles['Right'])
+        ]],
+        colWidths=[130*mm, 40*mm]
+    )
+    linha_natureza.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
-    story.append(t_nat_val)
+    story.append(linha_natureza)
 
     # 4) Tabela de itens com 2 colunas fixas (descrição à esquerda, valor à direita)
     itens_rra = [
-        ['01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)',
-         fmt_brl(rd.get('rraTributaveis'))],
-        ['02 - Exclusão: Despesas com a Ação Judicial',
-         fmt_brl(rd.get('rraDespesasJudiciais'))],
-        ['03 - Dedução: Contribuição Previdenciária Oficial',
-         fmt_brl(rd.get('rraInss'))],
-        ['04 - Dedução Pensão Alimentícia',
-         fmt_brl(rd.get('rraPensao'))],
-        ['05 - Imposto sobre a Renda Retido na Fonte',
-         fmt_brl(rd.get('rraIrrf'))],
-        ['06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço',
-         fmt_brl(rd.get('rraIsentos'))]
+        [
+            Paragraph('01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)', styles['Left']),
+            Paragraph(fmt_brl(rd.get('rraTributaveis')), styles['Right'])
+        ],
+        [
+            Paragraph('02 - Exclusão: Despesas com a Ação Judicial', styles['Left']),
+            Paragraph(fmt_brl(rd.get('rraDespesasJudiciais')), styles['Right'])
+        ],
+        [
+            Paragraph('03 - Dedução: Contribuição Previdenciária Oficial', styles['Left']),
+            Paragraph(fmt_brl(rd.get('rraInss')), styles['Right'])
+        ],
+        [
+            Paragraph('04 - Dedução Pensão Alimentícia', styles['Left']),
+            Paragraph(fmt_brl(rd.get('rraPensao')), styles['Right'])
+        ],
+        [
+            Paragraph('05 - Imposto sobre a Renda Retido na Fonte', styles['Left']),
+            Paragraph(fmt_brl(rd.get('rraIrrf')), styles['Right'])
+        ],
+        [
+            Paragraph('06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço', styles['Left']),
+            Paragraph(fmt_brl(rd.get('rraIsentos')), styles['Right'])
+        ]
     ]
-    t_itens = Table(itens_rra, colWidths=[130*mm, 40*mm])
-    t_itens.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 4),
-        ('RIGHTPADDING', (0,0), (-1,-1), 4),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+    tabela_itens = Table(itens_rra, colWidths=[130*mm, 40*mm])
+    tabela_itens.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
-    story.append(t_itens)
+    story.append(tabela_itens)
     story.append(Spacer(1, 2*mm))
-
-    # ======================== FIM DA SEÇÃO 6 ========================
 
     # Seção 7
     story.append(Table([['7. INFORMAÇÕES COMPLEMENTARES']], colWidths=[170*mm], style=[
