@@ -66,6 +66,7 @@ def gerar_pdf(dados, output_path):
                            leftMargin=15*mm, rightMargin=15*mm,
                            topMargin=10*mm, bottomMargin=10*mm)
 
+    # --- Configuração de estilos (todos adicionados antes de usar) ---
     styles = getSampleStyleSheet()
     styles['Normal'].fontName = FONT_NAME
     styles['Normal'].fontSize = 10
@@ -76,6 +77,7 @@ def gerar_pdf(dados, output_path):
     styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
     styles.add(ParagraphStyle(name='Bold', parent=styles['Normal'], fontName=FONT_NAME, bold=True))
     styles.add(ParagraphStyle(name='BoldCenter', parent=styles['Bold'], alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name='BoldRight', parent=styles['Bold'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='Small', parent=styles['Normal'], fontSize=8))
 
     story = []
@@ -90,7 +92,6 @@ def gerar_pdf(dados, output_path):
         Paragraph(f'<b>Exercício de {exercicio}</b>', styles['Bold']),
         Paragraph(f'<b>Ano-Calendário {ano}</b>', styles['BoldRight'])
     ]]
-    styles.add(ParagraphStyle(name='BoldRight', parent=styles['Bold'], alignment=TA_RIGHT))
     t_periodo = Table(data_periodo, colWidths=[85*mm, 85*mm])
     t_periodo.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
     story.append(t_periodo)
