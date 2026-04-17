@@ -16,15 +16,35 @@ function CurrencyField({label,value,onChange}){return(<Field label={label}><div 
 function Spin({large}){return<span className={large?"spin-lg":"spin"}/>}
 
 const REND_FIELDS = [
-  {key:"tributaveis", label:"Total dos Rendimentos (inclusive férias)", sec:3},
-  {key:"inss", label:"Contribuição Previdenciária Oficial", sec:3},
-  {key:"outrasDeducoes", label:"Pensão Alimentícia / Outras Deduções", sec:3},
-  {key:"irrf", label:"Imposto sobre a renda retido na fonte", sec:3},
-  {key:"lucrosDividendos", label:"Lucros e Dividendos (item 04)", sec:4},
-  {key:"outrosIsentos", label:"Outros Rendimentos Isentos", sec:4},
-  {key:"trezeRendimentos", label:"13º Salário", sec:5},
-  {key:"trezeIrrf", label:"IRRF sobre 13º Salário", sec:5},
+  // Seção 3
+  {key:"tributaveis", label:"01 - Total dos Rendimentos (inclusive Férias)", sec:3},
+  {key:"inss", label:"02 - Contribuição Previdenciária Oficial", sec:3},
+  {key:"prevComplementar", label:"03 - Contrib. Previd. Complementar / FAPI", sec:3},
+  {key:"pensaoAlimenticia", label:"04 - Pensão Alimentícia", sec:3},
+  {key:"irrf", label:"05 - Imposto sobre a renda retido na fonte", sec:3},
+  // Seção 4
+  {key:"parcelaIsenta65", label:"01 - Parcela Isenta 65 anos ou mais", sec:4},
+  {key:"diariasAjudas", label:"02 - Diárias e Ajudas de Custo", sec:4},
+  {key:"molestiaGrave", label:"03 - Pensão/Aposent. Moléstia Grave ou Acidente", sec:4},
+  {key:"lucrosDividendos", label:"04 - Lucros e Dividendos", sec:4},
+  {key:"prolaboreIsento", label:"05 - Pro-labore isento ME/EPP", sec:4},
+  {key:"indenizacoes", label:"06 - Indenizações por Rescisão/PDV", sec:4},
+  {key:"outrosIsentos", label:"07 - Outros Rendimentos Isentos", sec:4},
+  // Seção 5
+  {key:"trezeRendimentos", label:"01 - 13º Salário", sec:5},
+  {key:"trezeIrrf", label:"02 - IRRF sobre 13º Salário", sec:5},
+  {key:"outrosTribExclusiva", label:"03 - Outros (Trib. Exclusiva)", sec:5},
+  // Seção 6 (RRA)
+  {key:"rraNumProcesso", label:"6.1 Número do Processo", sec:6, tipo:"texto"},
+  {key:"rraMeses", label:"Quantidade de Meses", sec:6, tipo:"numero"},
+  {key:"rraTributaveis", label:"Total Rendimentos Tributáveis", sec:6, tipo:"moeda"},
+  {key:"rraDespesasJudiciais", label:"Despesas com Ação Judicial", sec:6, tipo:"moeda"},
+  {key:"rraInss", label:"Contribuição Previdenciária", sec:6, tipo:"moeda"},
+  {key:"rraPensao", label:"Pensão Alimentícia", sec:6, tipo:"moeda"},
+  {key:"rraIrrf", label:"IRRF", sec:6, tipo:"moeda"},
+  {key:"rraIsentos", label:"Rendimentos Isentos (Moléstia/Acidente)", sec:6, tipo:"moeda"},
 ];
+
 const INIT_REND = Object.fromEntries(REND_FIELDS.map(f=>[f.key,""]));
 
 function AbaIndividual(){
@@ -33,8 +53,9 @@ function AbaIndividual(){
   const [fonte, setFonte] = useState({razaoSocial:"", cnpj:""});
   const [benef, setBenef] = useState({nome:"", cpf:""});
   const [rend, setRend] = useState(INIT_REND);
-  const [responsavel, setResponsavel] = useState({nome:"", data:""});
-  const [loading, setLoad] = useState(null);
+  const [responsavel, setResponsavel] = useState({nome:"", data:"", assinatura:""});
+  const [infoComplementar, setInfoComplementar] = useState("");
+  const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
   const [ok, setOk] = useState(false);
 
@@ -45,10 +66,9 @@ function AbaIndividual(){
   const setR = k => v => setRend(p => ({...p, [k]: v}));
   const setResp = k => v => setResponsavel(p => ({...p, [k]: v}));
 
-  async function submit(fmt){
-    setErro(null); setOk(false); setLoad(fmt);
+  async function handleSubmit(){
+    setErro(null); setOk(false); setLoading(true);
     try{
-      const endpoint = fmt === "pdf" ? "/api/informe/gerar-pdf" : "/api/informe/gerar";
       const payload = {
         exercicio,
         anoCalendario: ano,
@@ -57,10 +77,12 @@ function AbaIndividual(){
         rendimentos: rend,
         responsavel: {
           nome: responsavel.nome || "Não informado",
-          data: responsavel.data || new Date().toLocaleDateString('pt-BR')
-        }
+          data: responsavel.data || new Date().toLocaleDateString('pt-BR'),
+          assinatura: responsavel.assinatura || "Isento conforme IN RFB 1215/2011"
+        },
+        informacoesComplementares: infoComplementar
       };
-      const res = await fetch(API_URL + endpoint, {
+      const res = await fetch(API_URL + "/api/informe/gerar-pdf", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
@@ -73,14 +95,14 @@ function AbaIndividual(){
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Informe_${benef.nome}_${ano}.${fmt === "pdf" ? "pdf" : "docx"}`;
+      a.download = `Informe_${benef.nome}_${ano}.pdf`;
       document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(url);
       setOk(true);
     } catch(e) {
       setErro(e.message);
     } finally {
-      setLoad(null);
+      setLoading(false);
     }
   }
 
@@ -118,42 +140,85 @@ function AbaIndividual(){
       </div>
 
       {[
-        {n:3, t:"Rendimentos Tributáveis, Deduções e Imposto Retido na Fonte"},
-        {n:4, t:"Rendimentos Isentos e Não Tributáveis"},
-        {n:5, t:"Rendimentos Sujeitos à Tributação Exclusiva (13° Salário)"}
+        {n:3, t:"3. Rendimentos Tributáveis, Deduções e Imposto Retido na Fonte"},
+        {n:4, t:"4. Rendimentos Isentos e Não Tributáveis"},
+        {n:5, t:"5. Rendimentos Sujeitos à Tributação Exclusiva"}
       ].map(({n,t}) => (
         <div className="card" key={n}>
           <SectionTitle number={n} title={t}/>
-          <div className={sec(n).length === 3 ? "g3" : "g2"}>
-            {sec(n).map(f => <CurrencyField key={f.key} label={f.label} value={rend[f.key]} onChange={setR(f.key)}/>)}
+          <div className="g2">
+            {sec(n).map(f => (
+              f.tipo === "texto" ? (
+                <Field key={f.key} label={f.label}>
+                  <input value={rend[f.key]} onChange={e=>setR(f.key)(e.target.value)} />
+                </Field>
+              ) : f.tipo === "numero" ? (
+                <Field key={f.key} label={f.label}>
+                  <input type="number" value={rend[f.key]} onChange={e=>setR(f.key)(e.target.value)} />
+                </Field>
+              ) : (
+                <CurrencyField key={f.key} label={f.label} value={rend[f.key]} onChange={setR(f.key)}/>
+              )
+            ))}
           </div>
         </div>
       ))}
 
       <div className="card">
+        <SectionTitle number="6" title="Rendimentos Recebidos Acumuladamente (RRA)"/>
+        <div className="g3">
+          {sec(6).map(f => (
+            f.tipo === "texto" ? (
+              <Field key={f.key} label={f.label}>
+                <input value={rend[f.key]} onChange={e=>setR(f.key)(e.target.value)} />
+              </Field>
+            ) : f.tipo === "numero" ? (
+              <Field key={f.key} label={f.label}>
+                <input type="number" value={rend[f.key]} onChange={e=>setR(f.key)(e.target.value)} />
+              </Field>
+            ) : (
+              <CurrencyField key={f.key} label={f.label} value={rend[f.key]} onChange={setR(f.key)}/>
+            )
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <SectionTitle number="7" title="Informações Complementares"/>
+        <Field label="Descreva informações adicionais se necessário">
+          <textarea rows="3" value={infoComplementar} onChange={e=>setInfoComplementar(e.target.value)} />
+        </Field>
+      </div>
+
+      <div className="card">
         <SectionTitle number="8" title="Responsável pelas Informações"/>
-        <div className="g2">
+        <div className="g3">
           <Field label="Nome Completo">
             <input value={responsavel.nome} onChange={e=>setResp("nome")(e.target.value)} placeholder="Nome do responsável" />
           </Field>
           <Field label="Data">
             <input type="text" value={responsavel.data} onChange={e=>setResp("data")(e.target.value)} placeholder="DD/MM/AAAA" />
           </Field>
+          <Field label="Assinatura">
+            <input value={responsavel.assinatura} onChange={e=>setResp("assinatura")(e.target.value)} placeholder="Ex: Isento conforme IN..." />
+          </Field>
         </div>
       </div>
 
       {erro && <div className="alert err">⚠️ {erro}</div>}
-      {ok && <div className="alert suc">✅ Download iniciado com sucesso!</div>}
+      {ok && <div className="alert suc">✅ PDF gerado com sucesso!</div>}
       <div className="actions">
         <button className="btn-sec" onClick={()=>{
           setFonte({razaoSocial:"",cnpj:""});
           setBenef({nome:"",cpf:""});
           setRend(INIT_REND);
-          setResponsavel({nome:"",data:""});
+          setResponsavel({nome:"",data:"",assinatura:""});
+          setInfoComplementar("");
           setErro(null); setOk(false);
         }}>Limpar</button>
-        <button className="btn-outline" onClick={()=>submit("pdf")} disabled={!!loading}>{loading==="pdf"?<><Spin/> Gerando PDF...</>:"⬇ Baixar PDF"}</button>
-        <button className="btn-primary" onClick={()=>submit("docx")} disabled={!!loading}>{loading==="docx"?<><Spin/> Gerando...</>:"⬇ Baixar Word (.docx)"}</button>
+        <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
+          {loading ? <><Spin/> Gerando PDF...</> : "⬇ Baixar PDF"}
+        </button>
       </div>
     </div>
   );
@@ -179,19 +244,17 @@ function AbaLote(){
     const file = e.target.files?.[0];
     if(!file) return;
     console.log('📤 === UPLOAD INICIADO ===');
-    console.log('📋 Arquivo selecionado:', { name: file.name, size: file.size, type: file.type });
     if (!file.name.match(/\.xlsx$/i)) { setMsgErro('O arquivo deve ter extensão .xlsx'); return; }
-    if (file.size < 1000) { setMsgErro(`Arquivo muito pequeno (${file.size} bytes). Pode estar vazio ou corrompido.`); return; }
+    if (file.size < 1000) { setMsgErro(`Arquivo muito pequeno (${file.size} bytes).`); return; }
     setLP(true); setMsgErro(null);
     const form = new FormData(); form.append("arquivo", file, file.name);
     try{
       const res = await fetch(`${API_URL}/api/lote/preview`, { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.erro || data.detalhes || 'Erro ao processar arquivo');
-      console.log('✅ Preview processado:', { total: data.total, validos: data.validos });
+      if (!res.ok) throw new Error(data.erro || data.detalhes);
       setSocios(data.registros || []); setErros(data.erros || []); setFase("preview");
     } catch(e) {
-      console.error('❌ Erro no upload:', e); setMsgErro(e.message);
+      setMsgErro(e.message);
     } finally {
       setLP(false); if(fileRef.current) fileRef.current.value = "";
     }
@@ -221,7 +284,7 @@ function AbaLote(){
     <div className="card">
       <div className="step-header">
         <div className="step-badge">2</div>
-        <div><h3>Faça o upload do Excel preenchido</h3><p className="step-sub">Prévia será gerada para você conferir antes de gerar os PDFs.</p></div>
+        <div><h3>Faça o upload do Excel preenchido</h3><p className="step-sub">Prévia será gerada para conferência.</p></div>
       </div>
       <div className="upload-zone" onClick={()=>fileRef.current?.click()}>
         <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleUpload} style={{display:"none"}}/>
@@ -233,9 +296,9 @@ function AbaLote(){
       <div className="card">
         <div className="step-header">
           <div className="step-badge" style={{background:socios.length>0?"var(--success)":"var(--error)"}}>3</div>
-          <div><h3>Prévia dos dados</h3><p className="step-sub"><strong>{socios.length}</strong> sócio(s) válido(s) · <span style={{color:erros.length?"var(--error)":"inherit"}}>{erros.length} erro(s)</span></p></div>
+          <div><h3>Prévia dos dados</h3><p className="step-sub"><strong>{socios.length}</strong> sócio(s) válido(s) · {erros.length} erro(s)</p></div>
         </div>
-        {erros.length>0&&(<div className="erros-box"><strong>⚠️ Linhas com erro (não serão geradas):</strong>{erros.map((e,i)=><div key={i} className="erro-linha">Linha {e.linha} — {e.nome}: {e.erros.join(", ")}</div>)}</div>)}
+        {erros.length>0&&(<div className="erros-box"><strong>⚠️ Linhas com erro:</strong>{erros.map((e,i)=><div key={i} className="erro-linha">Linha {e.linha} — {e.nome}: {e.erros.join(", ")}</div>)}</div>)}
         {socios.length>0&&(
           <div className="preview-table-wrap">
             <table className="preview-table">
@@ -263,14 +326,14 @@ function AbaLote(){
       <div className="card">
         <div className="step-header">
           <div className="step-badge" style={{background:fase==="pronto"?"var(--success)":"var(--rf-blue)"}}>4</div>
-          <div><h3>Gerar PDFs em lote</h3><p className="step-sub">Será gerado um ZIP com <strong>{socios.length}</strong> PDF(s), um por sócio.</p></div>
+          <div><h3>Gerar PDFs em lote</h3><p className="step-sub">Será gerado um ZIP com <strong>{socios.length}</strong> PDF(s).</p></div>
         </div>
         {fase==="pronto"?(
           <div className="alert suc">✅ ZIP gerado! Cada PDF está nomeado com o número e nome do sócio.</div>
         ):(
           <div className="actions" style={{marginTop:16}}>
             <button className="btn-sec" onClick={()=>{setFase("upload");setSocios([]);setErros([])}}>Voltar</button>
-            <button className="btn-primary" onClick={gerarLote} disabled={loadGerar}>{loadGerar?<><Spin/> Gerando {socios.length} PDF(s)...</>:`⬇ Gerar ${socios.length} PDF(s) em ZIP`}</button>
+            <button className="btn-primary" onClick={gerarLote} disabled={loadGerar}>{loadGerar?<><Spin/> Gerando...</>:`⬇ Gerar ${socios.length} PDF(s) em ZIP`}</button>
           </div>
         )}
       </div>
@@ -280,8 +343,7 @@ function AbaLote(){
 
 export default function App(){
   const [aba,setAba]=useState("individual");
-  return(<>
-    <style>{CSS}</style>
+  return (
     <div className="app">
       <header className="hdr">
         <div className="hdr-inner">
@@ -296,64 +358,7 @@ export default function App(){
       <main className="main">{aba==="individual"?<AbaIndividual/>:<AbaLote/>}</main>
       <footer className="ftr">Aprovado pela Instrução Normativa RFB nº 2.060, de 13 de dezembro de 2021.</footer>
     </div>
-  </>);
+  );
 }
 
-const CSS=`
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--rf-blue:#1F3864;--rf-mid:#2563A8;--rf-acc:#f5a623;--bg:#f0f4fa;--card:#fff;--border:#d4dce8;--text:#1e293b;--muted:#64748b;--success:#16a34a;--error:#dc2626;--r:10px}
-body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.hdr{background:linear-gradient(135deg,var(--rf-blue),var(--rf-mid));color:#fff;padding:24px 32px;box-shadow:0 4px 20px rgba(26,60,110,.25)}
-.hdr-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:18px}
-.hdr-badge{width:50px;height:50px;background:var(--rf-acc);color:var(--rf-blue);font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;border-radius:12px;flex-shrink:0}
-.hdr-inner h1{font-size:20px;font-weight:700}.hdr-inner p{font-size:12px;opacity:.8;margin-top:2px}
-.tabs-bar{max-width:960px;margin:0 auto;display:flex;gap:4px;padding:20px 16px 0}
-.tab{padding:10px 22px;border:none;border-radius:8px 8px 0 0;font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;cursor:pointer;background:#dce6f5;color:var(--muted);transition:all .15s}
-.tab-on{background:var(--card);color:var(--rf-blue);box-shadow:0 -2px 0 var(--rf-mid) inset}.tab:hover:not(.tab-on){background:#cddaee}
-.main{max-width:960px;margin:0 auto;padding:0 16px 80px;border-top:3px solid var(--rf-mid)}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px 26px;margin-top:18px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.card-resp{background:#f8faff;border-color:#b8cce8}
-.sec-title{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--bg)}
-.sec-num{width:28px;height:28px;background:var(--rf-blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:7px;flex-shrink:0}
-.sec-title h2{font-size:13px;font-weight:600;color:var(--rf-blue);text-transform:uppercase;letter-spacing:.4px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-@media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
-.field{display:flex;flex-direction:column;gap:5px}
-.field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-input,select{font-family:'Figtree',sans-serif;font-size:14px;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;color:var(--text);background:#fff;width:100%;transition:border-color .15s,box-shadow .15s}
-input:focus,select:focus{outline:none;border-color:var(--rf-mid);box-shadow:0 0 0 3px rgba(37,99,168,.12)}
-.ro{background:#f1f5f9;color:var(--muted);cursor:default;font-family:'JetBrains Mono',monospace;font-size:12px}
-.currency-wrap{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
-.currency-wrap:focus-within{border-color:var(--rf-mid);box-shadow:0 0 0 3px rgba(37,99,168,.12)}
-.currency-pre{padding:9px 10px;background:#f1f5f9;font-size:12px;font-weight:600;color:var(--muted);border-right:1.5px solid var(--border);flex-shrink:0;font-family:'JetBrains Mono',monospace}
-.currency-wrap input{border:none;border-radius:0;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px}
-.currency-wrap input:focus{box-shadow:none}
-.alert{padding:12px 16px;border-radius:var(--r);font-size:13px;font-weight:500;margin-top:16px;display:flex;align-items:center;gap:8px}
-.err{background:#fef2f2;color:var(--error);border:1px solid #fca5a5}.suc{background:#f0fdf4;color:var(--success);border:1px solid #86efac}
-.actions{display:flex;justify-content:flex-end;gap:12px;margin-top:20px;flex-wrap:wrap}
-.btn-primary,.btn-sec,.btn-outline{display:flex;align-items:center;gap:7px;padding:11px 24px;border-radius:9px;font-family:'Figtree',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
-.btn-primary{background:var(--rf-blue);color:#fff;box-shadow:0 4px 12px rgba(26,60,110,.3)}.btn-primary:hover:not(:disabled){background:var(--rf-mid);transform:translateY(-1px)}.btn-primary:disabled{opacity:.6;cursor:not-allowed}
-.btn-outline{background:#fff;color:var(--rf-mid);border:1.5px solid var(--rf-mid)}.btn-outline:hover{background:#eef4ff}
-.btn-sec{background:#fff;color:var(--muted);border:1.5px solid var(--border)}.btn-sec:hover{background:var(--bg)}
-.btn-rm{background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px}.btn-rm:hover{color:var(--error);background:#fef2f2}
-.step-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.step-badge{width:32px;height:32px;border-radius:50%;background:var(--rf-blue);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.step-header h3{font-size:15px;font-weight:600}.step-sub{font-size:12px;color:var(--muted);margin-top:2px}
-.step-header .btn-outline{margin-left:auto}
-.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:36px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-top:16px;color:var(--muted)}
-.upload-zone:hover{border-color:var(--rf-mid);background:#f0f7ff}
-.upload-icon{font-size:32px;display:block;margin-bottom:8px}.upload-zone p{font-size:13px;margin-top:4px}.upload-hint{font-size:11px;margin-top:4px;opacity:.6}
-.erros-box{background:#fef9ec;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px}
-.erro-linha{margin-top:4px;color:#92400e}
-.preview-table-wrap{overflow-x:auto;margin-top:12px}
-.preview-table{width:100%;border-collapse:collapse;font-size:12px}
-.preview-table th{background:#f1f5f9;font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);white-space:nowrap}
-.preview-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
-.preview-table tr:hover td{background:#f8faff}
-.mono{font-family:'JetBrains Mono',monospace;font-size:11px}.num{text-align:right;font-family:'JetBrains Mono',monospace}
-.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite}
-.spin-lg{width:28px;height:28px;border:3px solid rgba(37,99,168,.2);border-top-color:var(--rf-mid);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;margin-bottom:10px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.ftr{text-align:center;padding:20px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:30px}
-`;
+import './App.css';
