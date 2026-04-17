@@ -53,7 +53,11 @@ function AbaIndividual(){
   const [fonte, setFonte] = useState({razaoSocial:"", cnpj:""});
   const [benef, setBenef] = useState({nome:"", cpf:""});
   const [rend, setRend] = useState(INIT_REND);
-  const [responsavel, setResponsavel] = useState({nome:"", data:"", assinatura:""});
+  const [responsavel, setResponsavel] = useState({
+    nome: "",
+    data: "",
+    assinatura: "Isento conforme IN RFB 1215/2011"
+  });
   const [infoComplementar, setInfoComplementar] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
@@ -78,7 +82,7 @@ function AbaIndividual(){
         responsavel: {
           nome: responsavel.nome || "Não informado",
           data: responsavel.data || new Date().toLocaleDateString('pt-BR'),
-          assinatura: responsavel.assinatura || "Isento conforme IN RFB 1215/2011"
+          assinatura: responsavel.assinatura
         },
         informacoesComplementares: infoComplementar
       };
@@ -212,7 +216,7 @@ function AbaIndividual(){
           setFonte({razaoSocial:"",cnpj:""});
           setBenef({nome:"",cpf:""});
           setRend(INIT_REND);
-          setResponsavel({nome:"",data:"",assinatura:""});
+          setResponsavel({nome:"",data:"", assinatura:"Isento conforme IN RFB 1215/2011"});
           setInfoComplementar("");
           setErro(null); setOk(false);
         }}>Limpar</button>
@@ -273,6 +277,29 @@ function AbaLote(){
     finally{ setLG(false); }
   }
 
+  async function baixarPDFIndividual(socio) {
+    try {
+      const res = await fetch(API_URL + "/api/informe/gerar-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(socio)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.erro || "Erro ao gerar PDF");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Informe_${socio.beneficiario?.nome}_${socio.anoCalendario}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Erro ao gerar PDF: " + e.message);
+    }
+  }
+
   return(<div>
     <div className="card">
       <div className="step-header">
@@ -302,21 +329,42 @@ function AbaLote(){
         {socios.length>0&&(
           <div className="preview-table-wrap">
             <table className="preview-table">
-              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>Sócio</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th></tr></thead>
-              <tbody>{socios.map((s,i)=>(
-                <tr key={i}>
-                  <td>{i+1}</td>
-                  <td>{s.exercicio || (s.anoCalendario ? s.anoCalendario+1 : '')}</td>
-                  <td>{s.fontePagadora?.razaoSocial}</td>
-                  <td className="mono">{fmtCNPJ(s.fontePagadora?.cnpj)}</td>
-                  <td>{s.beneficiario?.nome}</td>
-                  <td className="mono">{fmtCPF(s.beneficiario?.cpf)}</td>
-                  <td className="num">{fmtBRL(s.rendimentos?.tributaveis)}</td>
-                  <td className="num">{fmtBRL(s.rendimentos?.lucrosDividendos)}</td>
-                  <td className="num">{fmtBRL(s.rendimentos?.irrf)}</td>
-                  <td><button className="btn-rm" onClick={()=>setSocios(s=>s.filter((_,j)=>j!==i))}>✕</button></td>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Exercício</th>
+                  <th>Empresa</th>
+                  <th>CNPJ</th>
+                  <th>Sócio</th>
+                  <th>CPF</th>
+                  <th>Tributáveis</th>
+                  <th>Lucros/Div.</th>
+                  <th>IRRF</th>
+                  <th></th>
+                  <th></th>
                 </tr>
-              ))}</tbody>
+              </thead>
+              <tbody>
+                {socios.map((s,i)=>(
+                  <tr key={i}>
+                    <td>{i+1}</td>
+                    <td>{s.exercicio || (s.anoCalendario ? s.anoCalendario+1 : '')}</td>
+                    <td>{s.fontePagadora?.razaoSocial}</td>
+                    <td className="mono">{fmtCNPJ(s.fontePagadora?.cnpj)}</td>
+                    <td>{s.beneficiario?.nome}</td>
+                    <td className="mono">{fmtCPF(s.beneficiario?.cpf)}</td>
+                    <td className="num">{fmtBRL(s.rendimentos?.tributaveis)}</td>
+                    <td className="num">{fmtBRL(s.rendimentos?.lucrosDividendos)}</td>
+                    <td className="num">{fmtBRL(s.rendimentos?.irrf)}</td>
+                    <td>
+                      <button className="btn-outline" style={{padding: '4px 8px', fontSize: '11px'}} onClick={() => baixarPDFIndividual(s)}>
+                        📄 PDF
+                      </button>
+                    </td>
+                    <td><button className="btn-rm" onClick={()=>setSocios(s=>s.filter((_,j)=>j!==i))}>✕</button></td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         )}
