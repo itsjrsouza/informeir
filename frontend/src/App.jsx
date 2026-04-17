@@ -35,15 +35,7 @@ const REND_FIELDS = [
   {key:"trezeRendimentos", label:"01 - 13º Salário", sec:5},
   {key:"trezeIrrf", label:"02 - IRRF sobre 13º Salário", sec:5},
   {key:"outrosTribExclusiva", label:"03 - Outros (Trib. Exclusiva)", sec:5},
-  // Seção 6 (RRA)
-  {key:"rraNumProcesso", label:"6.1 Número do Processo", sec:6, tipo:"texto"},
-  {key:"rraMeses", label:"Quantidade de Meses", sec:6, tipo:"numero"},
-  {key:"rraTributaveis", label:"Total Rendimentos Tributáveis", sec:6, tipo:"moeda"},
-  {key:"rraDespesasJudiciais", label:"Despesas com Ação Judicial", sec:6, tipo:"moeda"},
-  {key:"rraInss", label:"Contribuição Previdenciária", sec:6, tipo:"moeda"},
-  {key:"rraPensao", label:"Pensão Alimentícia", sec:6, tipo:"moeda"},
-  {key:"rraIrrf", label:"IRRF", sec:6, tipo:"moeda"},
-  {key:"rraIsentos", label:"Rendimentos Isentos (Moléstia/Acidente)", sec:6, tipo:"moeda"},
+  // Seção 6 ...
 ];
 
 const INIT_REND = Object.fromEntries(REND_FIELDS.map(f=>[f.key,""]));

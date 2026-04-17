@@ -6,15 +6,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
-# Registrar fonte Tahoma (supondo que esteja disponível no sistema)
-try:
-    pdfmetrics.registerFont(TTFont('Tahoma', 'Tahoma.ttf'))
-    FONT_NAME = 'Tahoma'
-except:
-    FONT_NAME = 'Helvetica'  # fallback
+# Usar Helvetica (fonte padrão sempre disponível) com tamanho 10
+FONT_NAME = 'Helvetica'
 
 def fmt_brl(val):
     if val is None or str(val).strip() == "": return "0,00"
@@ -53,8 +47,12 @@ def gerar_pdf(dados, output_path):
                            topMargin=10*mm, bottomMargin=10*mm)
 
     styles = getSampleStyleSheet()
-    # Estilos base com Tahoma 10pt
-    styles.add(ParagraphStyle(name='Normal', fontName=FONT_NAME, fontSize=10, leading=12))
+    # Ajustar estilo Normal existente
+    styles['Normal'].fontName = FONT_NAME
+    styles['Normal'].fontSize = 10
+    styles['Normal'].leading = 12
+
+    # Adicionar estilos personalizados baseados no Normal
     styles.add(ParagraphStyle(name='Left', parent=styles['Normal'], alignment=TA_LEFT))
     styles.add(ParagraphStyle(name='Right', parent=styles['Normal'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
