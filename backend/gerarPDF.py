@@ -299,7 +299,7 @@ def gerar_pdf(dados, output_path):
 
     # Seção 8
     add_section(Paragraph('<b>8. RESPONSÁVEL PELAS INFORMAÇÕES</b>', styles['Normal']),
-                [Paragraph(['<b>Nome</b>', '<b>Data</b>', '<b>Assinatura</b>'], styles['Normal']),
+                [[Paragraph('<b>Nome</b>', styles['Normal']), Paragraph('<b>Data</b>', styles['Normal']), Paragraph('<b>Assinatura</b>', styles['Normal'])],
                  [resp.get('nome', 'Não informado'),
                   resp.get('data', '  /  /    '),
                   Paragraph(resp.get('assinatura', 'Isento conforme IN RFB 1215/2011'), styles['Small'])]],
