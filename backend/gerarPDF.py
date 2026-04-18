@@ -143,32 +143,32 @@ def gerar_pdf(dados, output_path):
     story.append(nat_table)
     story.append(Spacer(1, 2*mm))
 
-    # Seção 3
+# Seção 3
     add_section(Paragraph('<b>3. RENDIMENTOS TRIBUTÁVEIS, DEDUÇÕES E IMPOSTO RETIDO NA FONTE</b>', styles['Normal']),
-                [['01 - Total dos Rendimentos (inclusive Férias)', fmt_brl(rd.get('tributaveis'))],
-                 ['02 - Contribuição Previdenciária Oficial', fmt_brl(rd.get('inss'))],
-                 ['03 - Contrib. Previd. Complementar / FAPI', fmt_brl(rd.get('prevComplementar'))],
-                 ['04 - Pensão Alimentícia', fmt_brl(rd.get('pensaoAlimenticia'))],
-                 ['05 - Imposto sobre a renda retido na fonte', fmt_brl(rd.get('irrf'))]],
-                [130*mm, 40*mm])
+            [[Paragraph('01 - Total dos Rendimentos (inclusive Férias)', styles['Left']), Paragraph(fmt_brl(rd.get('tributaveis')), styles['Right'])],
+             [Paragraph('02 - Contribuição Previdenciária Oficial', styles['Left']), Paragraph(fmt_brl(rd.get('inss')), styles['Right'])],
+             [Paragraph('03 - Contrib. Previd. Complementar / FAPI', styles['Left']), Paragraph(fmt_brl(rd.get('prevComplementar')), styles['Right'])],
+             [Paragraph('04 - Pensão Alimentícia', styles['Left']), Paragraph(fmt_brl(rd.get('pensaoAlimenticia')), styles['Right'])],
+             [Paragraph('05 - Imposto sobre a renda retido na fonte', styles['Left']), Paragraph(fmt_brl(rd.get('irrf')), styles['Right'])]],
+            [130*mm, 40*mm])
 
-    # Seção 4
+# Seção 4
     add_section(Paragraph('<b>4. RENDIMENTOS ISENTOS E NÃO TRIBUTÁVEIS</b>', styles['Normal']),
-                [['01 - Parcela Isenta 65 anos ou mais', fmt_brl(rd.get('parcelaIsenta65'))],
-                 ['02 - Diárias e Ajudas de Custo', fmt_brl(rd.get('diariasAjudas'))],
-                 ['03 - Pensão/Aposent. Moléstia Grave ou Acidente', fmt_brl(rd.get('molestiaGrave'))],
-                 ['04 - Lucros e Dividendos', fmt_brl(rd.get('lucrosDividendos'))],
-                 ['05 - Pro-labore isento ME/EPP', fmt_brl(rd.get('prolaboreIsento'))],
-                 ['06 - Indenizações por Rescisão/PDV', fmt_brl(rd.get('indenizacoes'))],
-                 ['07 - Outros', fmt_brl(rd.get('outrosIsentos'))]],
-                [130*mm, 40*mm])
+            [[Paragraph('01 - Parcela Isenta 65 anos ou mais', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta65')), styles['Right'])],
+             [Paragraph('02 - Diárias e Ajudas de Custo', styles['Left']), Paragraph(fmt_brl(rd.get('diariasAjudas')), styles['Right'])],
+             [Paragraph('03 - Pensão/Aposent. Moléstia Grave ou Acidente', styles['Left']), Paragraph(fmt_brl(rd.get('molestiaGrave')), styles['Right'])],
+             [Paragraph('04 - Lucros e Dividendos', styles['Left']), Paragraph(fmt_brl(rd.get('lucrosDividendos')), styles['Right'])],
+             [Paragraph('05 - Pro-labore isento ME/EPP', styles['Left']), Paragraph(fmt_brl(rd.get('prolaboreIsento')), styles['Right'])],
+             [Paragraph('06 - Indenizações por Rescisão/PDV', styles['Left']), Paragraph(fmt_brl(rd.get('indenizacoes')), styles['Right'])],
+             [Paragraph('07 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosIsentos')), styles['Right'])]],
+            [130*mm, 40*mm])
 
-    # Seção 5
+# Seção 5
     add_section(Paragraph('<b>5. RENDIMENTOS SUJEITOS À TRIBUTAÇÃO EXCLUSIVA</b>', styles['Normal']),
-                [['01 - 13º Salário', fmt_brl(rd.get('trezeRendimentos'))],
-                 ['02 - IRRF sobre 13º Salário', fmt_brl(rd.get('trezeIrrf'))],
-                 ['03 - Outros', fmt_brl(rd.get('outrosTribExclusiva'))]],
-                [130*mm, 40*mm])
+            [[Paragraph('01 - 13º Salário', styles['Left']), Paragraph(fmt_brl(rd.get('trezeRendimentos')), styles['Right'])],
+             [Paragraph('02 - IRRF sobre 13º Salário', styles['Left']), Paragraph(fmt_brl(rd.get('trezeIrrf')), styles['Right'])],
+             [Paragraph('03 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosTribExclusiva')), styles['Right'])]],
+            [130*mm, 40*mm])
 
     # Seção 6 - RRA (Rendimentos Recebidos Acumuladamente)
     # 1) Cabeçalho único ocupando 100% da largura
@@ -302,7 +302,7 @@ def gerar_pdf(dados, output_path):
                 [[Paragraph('<b>Nome</b>', styles['Normal']), Paragraph('<b>Data</b>', styles['Normal']), Paragraph('<b>Assinatura</b>', styles['Normal'])],
                  [resp.get('nome', 'Não informado'),
                   resp.get('data', '  /  /    '),
-                  Paragraph(resp.get('assinatura', 'Isento conforme IN RFB 1215/2011'), styles['Small'])]],
+                  Paragraph(resp.get('assinatura', 'Isento conforme IN RFB 1.215/2011'), styles['Small'])]],
                 [70*mm, 40*mm, 60*mm])
 
     story.append(Spacer(1, 3*mm))
