@@ -304,7 +304,7 @@ async function handleValidar() {
                     <th>#</th>
                     <th>Ano</th>
                     <th>Empresa / CNPJ</th>
-                    <th>Sócio / CPF</th>
+                    <th>Beneficiário / CPF</th>
                     <th>Trib.</th>
                     <th>IRRF</th>
                     <th>Lucros</th>

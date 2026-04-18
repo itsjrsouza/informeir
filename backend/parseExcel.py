@@ -6,8 +6,8 @@ COL_MAP = {
     "ANO_CALENDARIO": ("anoCalendario", "meta"),
     "CNPJ_EMPRESA": ("cnpj", "fontePagadora"),
     "RAZAO_SOCIAL": ("razaoSocial", "fontePagadora"),
-    "NOME_SOCIO": ("nome", "beneficiario"),
-    "CPF_SOCIO": ("cpf", "beneficiario"),
+    "NOME_BENEFICIARIO": ("nome", "beneficiario"),
+    "CPF_BENEFICIARIO": ("cpf", "beneficiario"),
     "TRIBUTAVEIS": ("tributaveis", "rendimentos"),
     "INSS": ("inss", "rendimentos"),
     "PREV_COMPLEMENTAR": ("prevComplementar", "rendimentos"),
@@ -63,8 +63,8 @@ def linha_ignoravel(row):
     if 'ANO_CALENDARIO' in row.index: primeira_col = str(row['ANO_CALENDARIO']).strip().lower()
     elif 'EXERCICIO' in row.index: primeira_col = str(row['EXERCICIO']).strip().lower()
     if primeira_col and any(p in primeira_col for p in PALAVRAS_ROTULO): return True
-    if 'CPF_SOCIO' in row.index:
-        cpf_val = str(row['CPF_SOCIO']).strip()
+    if 'CPF_BENEFICIARIO' in row.index:
+        cpf_val = str(row['CPF_BENEFICIARIO']).strip()
         if cpf_val and not re.search(r'\d', cpf_val): return True
     return False
 
@@ -79,44 +79,44 @@ def parse(caminho):
     if header_row is None: return {"erro": "Coluna ANO_CALENDARIO não encontrada"}
     df.columns = df.iloc[header_row]
     df = df.iloc[header_row+1:].reset_index(drop=True).dropna(how='all')
-    socios, erros = [], []
+    BENEFICIARIOs, erros = [], []
     for idx, row in df.iterrows():
         if linha_ignoravel(row): continue
-        socio = {"fontePagadora": {}, "beneficiario": {}, "rendimentos": {}, "responsavel": {}}
+        BENEFICIARIO = {"fontePagadora": {}, "beneficiario": {}, "rendimentos": {}, "responsavel": {}}
         info = ""
         erros_linha = []
         for col_nome, (chave, secao) in COL_MAP.items():
             if col_nome not in df.columns: continue
             val = str(row[col_nome]).strip() if not pd.isna(row[col_nome]) else ""
             if secao == "meta":
-                try: socio[chave] = int(float(val)) if val else None
-                except: socio[chave] = None
+                try: BENEFICIARIO[chave] = int(float(val)) if val else None
+                except: BENEFICIARIO[chave] = None
             elif secao == "fontePagadora":
-                socio["fontePagadora"][chave] = limpar_cnpj(val) if col_nome == "CNPJ_EMPRESA" else val.upper()
+                BENEFICIARIO["fontePagadora"][chave] = limpar_cnpj(val) if col_nome == "CNPJ_EMPRESA" else val.upper()
             elif secao == "beneficiario":
-                socio["beneficiario"][chave] = limpar_cpf(val) if col_nome == "CPF_SOCIO" else val.upper()
+                BENEFICIARIO["beneficiario"][chave] = limpar_cpf(val) if col_nome == "CPF_BENEFICIARIO" else val.upper()
             elif secao == "rendimentos":
                 if chave.startswith('rra') and chave not in ['rraTributaveis','rraDespesasJudiciais','rraInss','rraPensao','rraIrrf','rraIsentos']:
-                    socio["rendimentos"][chave] = val
+                    BENEFICIARIO["rendimentos"][chave] = val
                 else:
-                    socio["rendimentos"][chave] = limpar_numero(val)
+                    BENEFICIARIO["rendimentos"][chave] = limpar_numero(val)
             elif secao == "info":
                 info = val
             elif secao == "responsavel":
-                socio["responsavel"][chave.replace('responsavel','').lower()] = val
+                BENEFICIARIO["responsavel"][chave.replace('responsavel','').lower()] = val
 
-        socio["informacoesComplementares"] = info
-        if not socio.get("exercicio") and socio.get("anoCalendario"): socio["exercicio"] = socio["anoCalendario"] + 1
-        if not socio["fontePagadora"].get("cnpj"): erros_linha.append("CNPJ_EMPRESA vazio")
-        if not socio["fontePagadora"].get("razaoSocial"): erros_linha.append("RAZAO_SOCIAL vazia")
-        if not socio["beneficiario"].get("nome"): erros_linha.append("NOME_SOCIO vazio")
-        if not socio["beneficiario"].get("cpf"): erros_linha.append("CPF_SOCIO vazio")
-        if not socio.get("anoCalendario"): erros_linha.append("ANO_CALENDARIO inválido")
+        BENEFICIARIO["informacoesComplementares"] = info
+        if not BENEFICIARIO.get("exercicio") and BENEFICIARIO.get("anoCalendario"): BENEFICIARIO["exercicio"] = BENEFICIARIO["anoCalendario"] + 1
+        if not BENEFICIARIO["fontePagadora"].get("cnpj"): erros_linha.append("CNPJ_EMPRESA vazio")
+        if not BENEFICIARIO["fontePagadora"].get("razaoSocial"): erros_linha.append("RAZAO_SOCIAL vazia")
+        if not BENEFICIARIO["beneficiario"].get("nome"): erros_linha.append("NOME_BENEFICIARIO vazio")
+        if not BENEFICIARIO["beneficiario"].get("cpf"): erros_linha.append("CPF_BENEFICIARIO vazio")
+        if not BENEFICIARIO.get("anoCalendario"): erros_linha.append("ANO_CALENDARIO inválido")
         if erros_linha:
-            erros.append({"linha": idx + header_row + 2, "erros": erros_linha, "nome": socio["beneficiario"].get("nome", "?")})
+            erros.append({"linha": idx + header_row + 2, "erros": erros_linha, "nome": BENEFICIARIO["beneficiario"].get("nome", "?")})
             continue
-        socios.append(socio)
-    return {"total": len(socios), "registros": socios, "validos": len(socios), "invalidos": len(erros), "erros": erros}
+        BENEFICIARIOs.append(BENEFICIARIO)
+    return {"total": len(BENEFICIARIOs), "registros": BENEFICIARIOs, "validos": len(BENEFICIARIOs), "invalidos": len(erros), "erros": erros}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2: print(json.dumps({"erro": "Informe o caminho"})); sys.exit(1)

@@ -302,7 +302,7 @@ function AbaLote(){
     <div className="card">
       <div className="step-header">
         <div className="step-badge">1</div>
-        <div><h3>Baixe o modelo e preencha</h3><p className="step-sub">Uma linha por sócio. Cada linha pode ter empresa diferente.</p></div>
+        <div><h3>Baixe o modelo e preencha</h3><p className="step-sub">Uma linha por beneficiário. Cada linha pode ter empresa diferente.</p></div>
         <button className="btn-outline" onClick={baixarModelo}>⬇ Baixar Modelo Excel</button>
       </div>
     </div>
@@ -915,7 +915,7 @@ textarea {
 .preview-table th:nth-child(2)  { width: 60px;  } /* Exercício */
 .preview-table th:nth-child(3)  { width: 150px; } /* Empresa */
 .preview-table th:nth-child(4)  { width: 120px; } /* CNPJ */
-.preview-table th:nth-child(5)  { width: 150px; } /* Sócio */
+.preview-table th:nth-child(5)  { width: 150px; } /* Beneficiário */
 .preview-table th:nth-child(6)  { width: 110px; } /* CPF */
 .preview-table th:nth-child(7)  { width: 100px; } /* Tributáveis */
 .preview-table th:nth-child(8)  { width: 100px; } /* Lucros/Div. */

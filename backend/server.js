@@ -151,9 +151,9 @@ app.post('/api/lote/preview', upload.single('arquivo'), async (req, res) => {
 
 app.post('/api/lote/gerar', async (req, res) => {
   const { socios } = req.body;
-  if (!Array.isArray(socios) || socios.length === 0) return res.status(400).json({ erro: 'Nenhum sócio informado' });
+  if (!Array.isArray(socios) || socios.length === 0) return res.status(400).json({ erro: 'Nenhum beneficiário informado' });
   
-  console.log(`\n📦 Gerando lote com ${socios.length} sócios...`);
+  console.log(`\n📦 Gerando lote com ${socios.length} beneficiários...`);
   
   const ts = Date.now();
   const dirLote = path.join(TEMP, `lote_${ts}`);
