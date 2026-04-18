@@ -275,7 +275,7 @@ def gerar_pdf(dados, output_path):
     story.append(Spacer(1, 2*mm))
 
     # Seção 7
-    story.append(Table([[Paragraph('7. INFORMAÇÕES COMPLEMENTARES', styles['Normal'])]], colWidths=[170*mm], style=[
+    story.append(Table([[Paragraph('<b>7. INFORMAÇÕES COMPLEMENTARES</b>', styles['Normal'])]], colWidths=[170*mm], style=[
         ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey),
         ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
         ('FONTSIZE', (0,0), (-1,-1), 10),
@@ -299,7 +299,7 @@ def gerar_pdf(dados, output_path):
 
     # Seção 8
     add_section(Paragraph('<b>8. RESPONSÁVEL PELAS INFORMAÇÕES</b>', styles['Normal']),
-                [['Nome', 'Data', 'Assinatura'],
+                [Paragraph(['<b>Nome</b>', '<b>Data</b>', '<b>Assinatura</b>'], styles['Normal']),
                  [resp.get('nome', 'Não informado'),
                   resp.get('data', '  /  /    '),
                   Paragraph(resp.get('assinatura', 'Isento conforme IN RFB 1215/2011'), styles['Small'])]],
