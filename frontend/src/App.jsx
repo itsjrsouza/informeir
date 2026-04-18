@@ -230,7 +230,7 @@ function AbaIndividual(){
 
 function AbaLote(){
   const [fase,setFase]=useState("upload");
-  const [socios,setSocios]=useState([]);
+  const [beneficiarios,setBeneficiarios]=useState([]);
   const [erros,setErros]=useState([]);
   const [loadPreview,setLP]=useState(false);
   const [loadGerar,setLG]=useState(false);
@@ -256,7 +256,7 @@ function AbaLote(){
       const res = await fetch(`${API_URL}/api/lote/preview`, { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.erro || data.detalhes);
-      setSocios(data.registros || []); setErros(data.erros || []); setFase("preview");
+      setBeneficiarios(data.registros || []); setErros(data.erros || []); setFase("preview");
     } catch(e) {
       setMsgErro(e.message);
     } finally {
@@ -267,7 +267,7 @@ function AbaLote(){
   async function gerarLote(){
     setLG(true); setMsgErro(null); setFase("gerando");
     try{
-      const res=await fetch(API_URL+"/api/lote/gerar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({socios})});
+      const res=await fetch(API_URL+"/api/lote/gerar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({socios: beneficiarios})});
       if(!res.ok){ const d=await res.json(); throw new Error(d.erro); }
       const blob=await res.blob();
       const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:`Informes_Lote_${new Date().toISOString().slice(0,10)}.zip`});
@@ -277,9 +277,9 @@ function AbaLote(){
     finally{ setLG(false); }
   }
 
-  async function baixarPDFIndividual(socio, nome){
+  async function baixarPDFIndividual(beneficiario, nome){
     try{
-      const payload = { ...socio };
+      const payload = { ...beneficiario };
       const res = await fetch(API_URL + "/api/informe/gerar-pdf", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
@@ -290,7 +290,7 @@ function AbaLote(){
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Informe_${nome}_${socio.anoCalendario || ''}.pdf`;
+      a.download = `Informe_${nome}_${beneficiario.anoCalendario || ''}.pdf`;
       document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(url);
     } catch(e){
@@ -320,29 +320,29 @@ function AbaLote(){
     {(fase==="preview"||fase==="gerando"||fase==="pronto")&&(
       <div className="card">
         <div className="step-header">
-          <div className="step-badge" style={{background:socios.length>0?"var(--success)":"var(--error)"}}>3</div>
-          <div><h3>Prévia dos dados</h3><p className="step-sub"><strong>{socios.length}</strong> beneficiário(s) válido(s) · {erros.length} erro(s)</p></div>
+          <div className="step-badge" style={{background:beneficiarios.length>0?"var(--success)":"var(--error)"}}>3</div>
+          <div><h3>Prévia dos dados</h3><p className="step-sub"><strong>{beneficiarios.length}</strong> beneficiário(s) válido(s) · {erros.length} erro(s)</p></div>
         </div>
         {erros.length>0&&(<div className="erros-box"><strong>⚠️ Linhas com erro:</strong>{erros.map((e,i)=><div key={i} className="erro-linha">Linha {e.linha} — {e.nome}: {e.erros.join(", ")}</div>)}</div>)}
-        {socios.length>0&&(
+        {beneficiarios.length>0&&(
           <div className="preview-table-wrap">
             <table className="preview-table">
-              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>beneficiário</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th><th></th></tr></thead>
-              <tbody>{socios.map((s,i)=>(
+              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>Beneficiário</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th><th></th></tr></thead>
+              <tbody>{beneficiarios.map((b,i)=>(
                 <tr key={i}>
                   <td>{i+1}</td>
-                  <td>{s.exercicio || (s.anoCalendario ? s.anoCalendario+1 : '')}</td>
-                  <td>{s.fontePagadora?.razaoSocial}</td>
-                  <td className="mono">{fmtCNPJ(s.fontePagadora?.cnpj)}</td>
-                  <td>{s.beneficiario?.nome}</td>
-                  <td className="mono">{fmtCPF(s.beneficiario?.cpf)}</td>
-                  <td className="num">{fmtBRL(s.rendimentos?.tributaveis)}</td>
-                  <td className="num">{fmtBRL(s.rendimentos?.lucrosDividendos)}</td>
-                  <td className="num">{fmtBRL(s.rendimentos?.irrf)}</td>
+                  <td>{b.exercicio || (b.anoCalendario ? b.anoCalendario+1 : '')}</td>
+                  <td>{b.fontePagadora?.razaoSocial}</td>
+                  <td className="mono">{fmtCNPJ(b.fontePagadora?.cnpj)}</td>
+                  <td>{b.beneficiario?.nome}</td>
+                  <td className="mono">{fmtCPF(b.beneficiario?.cpf)}</td>
+                  <td className="num">{fmtBRL(b.rendimentos?.tributaveis)}</td>
+                  <td className="num">{fmtBRL(b.rendimentos?.lucrosDividendos)}</td>
+                  <td className="num">{fmtBRL(b.rendimentos?.irrf)}</td>
                   <td>
-                    <button className="btn-rm" onClick={()=>baixarPDFIndividual(s, s.beneficiario?.nome)} title="Baixar PDF individual">📄</button>
+                    <button className="btn-rm" onClick={()=>baixarPDFIndividual(b, b.beneficiario?.nome)} title="Baixar PDF individual">📄</button>
                   </td>
-                  <td><button className="btn-rm" onClick={()=>setSocios(s=>s.filter((_,j)=>j!==i))}>✕</button></td>
+                  <td><button className="btn-rm" onClick={()=>setBeneficiarios(s=>s.filter((_,j)=>j!==i))}>✕</button></td>
                 </tr>
               ))}</tbody>
             </table>
@@ -350,18 +350,18 @@ function AbaLote(){
         )}
       </div>
     )}
-    {(fase==="preview"||fase==="gerando"||fase==="pronto")&&socios.length>0&&(
+    {(fase==="preview"||fase==="gerando"||fase==="pronto")&&beneficiarios.length>0&&(
       <div className="card">
         <div className="step-header">
           <div className="step-badge" style={{background:fase==="pronto"?"var(--success)":"var(--rf-blue)"}}>4</div>
-          <div><h3>Gerar PDFs em lote</h3><p className="step-sub">Será gerado um ZIP com <strong>{socios.length}</strong> PDF(s).</p></div>
+          <div><h3>Gerar PDFs em lote</h3><p className="step-sub">Será gerado um ZIP com <strong>{beneficiarios.length}</strong> PDF(s).</p></div>
         </div>
         {fase==="pronto"?(
           <div className="alert suc">✅ ZIP gerado! Cada PDF está nomeado com o número e nome do beneficiário.</div>
         ):(
           <div className="actions" style={{marginTop:16}}>
-            <button className="btn-sec" onClick={()=>{setFase("upload");setSocios([]);setErros([])}}>Voltar</button>
-            <button className="btn-primary" onClick={gerarLote} disabled={loadGerar}>{loadGerar?<><Spin/> Gerando...</>:`⬇ Gerar ${socios.length} PDF(s) em ZIP`}</button>
+            <button className="btn-sec" onClick={()=>{setFase("upload");setBeneficiarios([]);setErros([])}}>Voltar</button>
+            <button className="btn-primary" onClick={gerarLote} disabled={loadGerar}>{loadGerar?<><Spin/> Gerando...</>:`⬇ Gerar ${beneficiarios.length} PDF(s) em ZIP`}</button>
           </div>
         )}
       </div>

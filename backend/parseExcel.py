@@ -79,44 +79,44 @@ def parse(caminho):
     if header_row is None: return {"erro": "Coluna ANO_CALENDARIO não encontrada"}
     df.columns = df.iloc[header_row]
     df = df.iloc[header_row+1:].reset_index(drop=True).dropna(how='all')
-    BENEFICIARIOs, erros = [], []
+    beneficiarios, erros = [], []
     for idx, row in df.iterrows():
         if linha_ignoravel(row): continue
-        BENEFICIARIO = {"fontePagadora": {}, "beneficiario": {}, "rendimentos": {}, "responsavel": {}}
+        beneficiario = {"fontePagadora": {}, "beneficiario": {}, "rendimentos": {}, "responsavel": {}}
         info = ""
         erros_linha = []
         for col_nome, (chave, secao) in COL_MAP.items():
             if col_nome not in df.columns: continue
             val = str(row[col_nome]).strip() if not pd.isna(row[col_nome]) else ""
             if secao == "meta":
-                try: BENEFICIARIO[chave] = int(float(val)) if val else None
-                except: BENEFICIARIO[chave] = None
+                try: beneficiario[chave] = int(float(val)) if val else None
+                except: beneficiario[chave] = None
             elif secao == "fontePagadora":
-                BENEFICIARIO["fontePagadora"][chave] = limpar_cnpj(val) if col_nome == "CNPJ_EMPRESA" else val.upper()
+                beneficiario["fontePagadora"][chave] = limpar_cnpj(val) if col_nome == "CNPJ_EMPRESA" else val.upper()
             elif secao == "beneficiario":
-                BENEFICIARIO["beneficiario"][chave] = limpar_cpf(val) if col_nome == "CPF_BENEFICIARIO" else val.upper()
+                beneficiario["beneficiario"][chave] = limpar_cpf(val) if col_nome == "CPF_BENEFICIARIO" else val.upper()
             elif secao == "rendimentos":
                 if chave.startswith('rra') and chave not in ['rraTributaveis','rraDespesasJudiciais','rraInss','rraPensao','rraIrrf','rraIsentos']:
-                    BENEFICIARIO["rendimentos"][chave] = val
+                    beneficiario["rendimentos"][chave] = val
                 else:
-                    BENEFICIARIO["rendimentos"][chave] = limpar_numero(val)
+                    beneficiario["rendimentos"][chave] = limpar_numero(val)
             elif secao == "info":
                 info = val
             elif secao == "responsavel":
-                BENEFICIARIO["responsavel"][chave.replace('responsavel','').lower()] = val
+                beneficiario["responsavel"][chave.replace('responsavel','').lower()] = val
 
-        BENEFICIARIO["informacoesComplementares"] = info
-        if not BENEFICIARIO.get("exercicio") and BENEFICIARIO.get("anoCalendario"): BENEFICIARIO["exercicio"] = BENEFICIARIO["anoCalendario"] + 1
-        if not BENEFICIARIO["fontePagadora"].get("cnpj"): erros_linha.append("CNPJ_EMPRESA vazio")
-        if not BENEFICIARIO["fontePagadora"].get("razaoSocial"): erros_linha.append("RAZAO_SOCIAL vazia")
-        if not BENEFICIARIO["beneficiario"].get("nome"): erros_linha.append("NOME_BENEFICIARIO vazio")
-        if not BENEFICIARIO["beneficiario"].get("cpf"): erros_linha.append("CPF_BENEFICIARIO vazio")
-        if not BENEFICIARIO.get("anoCalendario"): erros_linha.append("ANO_CALENDARIO inválido")
+        beneficiario["informacoesComplementares"] = info
+        if not beneficiario.get("exercicio") and beneficiario.get("anoCalendario"): beneficiario["exercicio"] = beneficiario["anoCalendario"] + 1
+        if not beneficiario["fontePagadora"].get("cnpj"): erros_linha.append("CNPJ_EMPRESA vazio")
+        if not beneficiario["fontePagadora"].get("razaoSocial"): erros_linha.append("RAZAO_SOCIAL vazia")
+        if not beneficiario["beneficiario"].get("nome"): erros_linha.append("NOME_BENEFICIARIO vazio")
+        if not beneficiario["beneficiario"].get("cpf"): erros_linha.append("CPF_BENEFICIARIO vazio")
+        if not beneficiario.get("anoCalendario"): erros_linha.append("ANO_CALENDARIO inválido")
         if erros_linha:
-            erros.append({"linha": idx + header_row + 2, "erros": erros_linha, "nome": BENEFICIARIO["beneficiario"].get("nome", "?")})
+            erros.append({"linha": idx + header_row + 2, "erros": erros_linha, "nome": beneficiario["beneficiario"].get("nome", "?")})
             continue
-        BENEFICIARIOs.append(BENEFICIARIO)
-    return {"total": len(BENEFICIARIOs), "registros": BENEFICIARIOs, "validos": len(BENEFICIARIOs), "invalidos": len(erros), "erros": erros}
+        beneficiarios.append(beneficiario)
+    return {"total": len(beneficiarios), "registros": beneficiarios, "validos": len(beneficiarios), "invalidos": len(erros), "erros": erros}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2: print(json.dumps({"erro": "Informe o caminho"})); sys.exit(1)

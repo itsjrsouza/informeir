@@ -150,10 +150,11 @@ app.post('/api/lote/preview', upload.single('arquivo'), async (req, res) => {
 });
 
 app.post('/api/lote/gerar', async (req, res) => {
-  const { socios } = req.body;
-  if (!Array.isArray(socios) || socios.length === 0) return res.status(400).json({ erro: 'Nenhum beneficiário informado' });
+  const { socios } = req.body; // mantido compatibilidade com frontend que ainda envia "socios"
+  const beneficiarios = socios;
+  if (!Array.isArray(beneficiarios) || beneficiarios.length === 0) return res.status(400).json({ erro: 'Nenhum beneficiário informado' });
   
-  console.log(`\n📦 Gerando lote com ${socios.length} beneficiários...`);
+  console.log(`\n📦 Gerando lote com ${beneficiarios.length} beneficiários...`);
   
   const ts = Date.now();
   const dirLote = path.join(TEMP, `lote_${ts}`);
@@ -162,26 +163,26 @@ app.post('/api/lote/gerar', async (req, res) => {
   const erros = [];
   
   try {
-    for (let i = 0; i < socios.length; i++) {
-      const s = socios[i];
+    for (let i = 0; i < beneficiarios.length; i++) {
+      const b = beneficiarios[i];
       const jsonPath = path.join(dirLote, `dados_${i}.json`);
-      const nomeSocio = slugify(s.beneficiario?.nome || `socio_${i+1}`);
-      const pdfPath = path.join(dirLote, `${String(i+1).padStart(3,'0')}_${nomeSocio}.pdf`);
+      const nomeBeneficiario = slugify(b.beneficiario?.nome || `beneficiario_${i+1}`);
+      const pdfPath = path.join(dirLote, `${String(i+1).padStart(3,'0')}_${nomeBeneficiario}.pdf`);
       
       try {
-        fs.writeFileSync(jsonPath, JSON.stringify(s));
+        fs.writeFileSync(jsonPath, JSON.stringify(b));
         await runPython('gerarPDF.py', [jsonPath, pdfPath]);
-        console.log(`  ✅ [${i+1}/${socios.length}] PDF gerado: ${nomeSocio}`);
+        console.log(`  ✅ [${i+1}/${beneficiarios.length}] PDF gerado: ${nomeBeneficiario}`);
         cleanup(jsonPath);
       } catch (err) {
-        console.error(`  ❌ [${i+1}/${socios.length}] Erro: ${s.beneficiario?.nome} - ${err.message}`);
-        erros.push({ socio: s.beneficiario?.nome || `#${i+1}`, erro: err.message });
+        console.error(`  ❌ [${i+1}/${beneficiarios.length}] Erro: ${b.beneficiario?.nome} - ${err.message}`);
+        erros.push({ beneficiario: b.beneficiario?.nome || `#${i+1}`, erro: err.message });
         cleanup(jsonPath);
       }
     }
     
     if (erros.length > 0) {
-      fs.writeFileSync(path.join(dirLote, 'ERROS.txt'), erros.map(e => `${e.socio}: ${e.erro}`).join('\n'));
+      fs.writeFileSync(path.join(dirLote, 'ERROS.txt'), erros.map(e => `${e.beneficiario}: ${e.erro}`).join('\n'));
       console.log(`⚠️ ${erros.length} erro(s) registrados`);
     }
     
