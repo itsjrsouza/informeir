@@ -59,7 +59,7 @@ def gerar(output_path):
     ws["A1"].font = Font(bold=True, size=14, color=BRANCO); ws["A1"].fill = PatternFill("solid", fgColor=AZUL_ESCURO)
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 30
-    ws.merge_cells("A2:AM2"); ws["A2"].value = "Preencha uma linha por sócio. Não altere os nomes das colunas."
+    ws.merge_cells("A2:AM2"); ws["A2"].value = "Preencha uma linha por beneficiário. Não altere os nomes das colunas."
     ws["A2"].font = Font(italic=True, size=10, color="444444"); ws["A2"].fill = PatternFill("solid", fgColor=AZUL_CLARO)
     ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[2].height = 18

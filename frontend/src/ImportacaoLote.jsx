@@ -254,7 +254,7 @@ async function handleValidar() {
             </div>
 
             <div className="lote-info-box">
-              <strong>Colunas obrigatórias:</strong> ANO_CALENDARIO, CNPJ_EMPRESA, RAZAO_SOCIAL, NOME_SOCIO, CPF_SOCIO<br/>
+              <strong>Colunas obrigatórias:</strong> ANO_CALENDARIO, CNPJ_EMPRESA, RAZAO_SOCIAL, NOME_BENEFICIARIO, CPF_BENEFICIARIO<br/>
               <strong>Colunas monetárias:</strong> TRIBUTAVEIS, INSS, IRRF, LUCROS_DIVIDENDOS, OUTRAS_DEDUCOES, OUTROS_ISENTOS, PLANO_BENEFICIARIO, PLANO_EMPRESA, TREZE_RENDIMENTOS, TREZE_INSS, TREZE_IRRF
             </div>
           </div>

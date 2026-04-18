@@ -321,13 +321,13 @@ function AbaLote(){
       <div className="card">
         <div className="step-header">
           <div className="step-badge" style={{background:socios.length>0?"var(--success)":"var(--error)"}}>3</div>
-          <div><h3>Prévia dos dados</h3><p className="step-sub"><strong>{socios.length}</strong> sócio(s) válido(s) · {erros.length} erro(s)</p></div>
+          <div><h3>Prévia dos dados</h3><p className="step-sub"><strong>{socios.length}</strong> beneficiário(s) válido(s) · {erros.length} erro(s)</p></div>
         </div>
         {erros.length>0&&(<div className="erros-box"><strong>⚠️ Linhas com erro:</strong>{erros.map((e,i)=><div key={i} className="erro-linha">Linha {e.linha} — {e.nome}: {e.erros.join(", ")}</div>)}</div>)}
         {socios.length>0&&(
           <div className="preview-table-wrap">
             <table className="preview-table">
-              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>Sócio</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th><th></th></tr></thead>
+              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>beneficiário</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th><th></th></tr></thead>
               <tbody>{socios.map((s,i)=>(
                 <tr key={i}>
                   <td>{i+1}</td>
@@ -357,7 +357,7 @@ function AbaLote(){
           <div><h3>Gerar PDFs em lote</h3><p className="step-sub">Será gerado um ZIP com <strong>{socios.length}</strong> PDF(s).</p></div>
         </div>
         {fase==="pronto"?(
-          <div className="alert suc">✅ ZIP gerado! Cada PDF está nomeado com o número e nome do sócio.</div>
+          <div className="alert suc">✅ ZIP gerado! Cada PDF está nomeado com o número e nome do beneficiário.</div>
         ):(
           <div className="actions" style={{marginTop:16}}>
             <button className="btn-sec" onClick={()=>{setFase("upload");setSocios([]);setErros([])}}>Voltar</button>
