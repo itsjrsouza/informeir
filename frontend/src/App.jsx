@@ -56,7 +56,7 @@ function AbaIndividual(){
   const [responsavel, setResponsavel] = useState({
     nome: "",
     data: "",
-    assinatura: "Isento conforme IN RFB 1215/2011"  // fixo
+    assinatura: "Isento conforme IN RFB 1215/2011"
   });
   const [infoComplementar, setInfoComplementar] = useState("");
   const [loading, setLoading] = useState(false);
@@ -235,6 +235,7 @@ function AbaLote(){
   const [loadPreview,setLP]=useState(false);
   const [loadGerar,setLG]=useState(false);
   const [msgErro,setMsgErro]=useState(null);
+  const [selecionados, setSel] = useState([]);
   const fileRef=useRef();
 
   async function baixarModelo(){
@@ -257,6 +258,7 @@ function AbaLote(){
       const data = await res.json();
       if (!res.ok) throw new Error(data.erro || data.detalhes);
       setBeneficiarios(data.registros || []); setErros(data.erros || []); setFase("preview");
+      setSel((data.registros || []).map((_, i) => i));
     } catch(e) {
       setMsgErro(e.message);
     } finally {
@@ -267,7 +269,7 @@ function AbaLote(){
   async function gerarLote(){
     setLG(true); setMsgErro(null); setFase("gerando");
     try{
-      const res=await fetch(API_URL+"/api/lote/gerar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({socios: beneficiarios})});
+      const res=await fetch(API_URL+"/api/lote/gerar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({socios:beneficiarios})});
       if(!res.ok){ const d=await res.json(); throw new Error(d.erro); }
       const blob=await res.blob();
       const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:`Informes_Lote_${new Date().toISOString().slice(0,10)}.zip`});
@@ -296,6 +298,13 @@ function AbaLote(){
     } catch(e){
       alert("Erro ao baixar PDF individual: " + e.message);
     }
+  }
+
+  function toggleSel(i) {
+    setSel(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+  }
+  function toggleTodos() {
+    setSel(prev => prev.length === beneficiarios.length ? [] : beneficiarios.map((_, i) => i));
   }
 
   return(<div>
@@ -327,24 +336,41 @@ function AbaLote(){
         {beneficiarios.length>0&&(
           <div className="preview-table-wrap">
             <table className="preview-table">
-              <thead><tr><th>#</th><th>Exercício</th><th>Empresa</th><th>CNPJ</th><th>Beneficiário</th><th>CPF</th><th>Tributáveis</th><th>Lucros/Div.</th><th>IRRF</th><th></th><th></th></tr></thead>
-              <tbody>{beneficiarios.map((b,i)=>(
-                <tr key={i}>
-                  <td>{i+1}</td>
-                  <td>{b.exercicio || (b.anoCalendario ? b.anoCalendario+1 : '')}</td>
-                  <td>{b.fontePagadora?.razaoSocial}</td>
-                  <td className="mono">{fmtCNPJ(b.fontePagadora?.cnpj)}</td>
-                  <td>{b.beneficiario?.nome}</td>
-                  <td className="mono">{fmtCPF(b.beneficiario?.cpf)}</td>
-                  <td className="num">{fmtBRL(b.rendimentos?.tributaveis)}</td>
-                  <td className="num">{fmtBRL(b.rendimentos?.lucrosDividendos)}</td>
-                  <td className="num">{fmtBRL(b.rendimentos?.irrf)}</td>
-                  <td>
-                    <button className="btn-rm" onClick={()=>baixarPDFIndividual(b, b.beneficiario?.nome)} title="Baixar PDF individual">📄</button>
-                  </td>
-                  <td><button className="btn-rm" onClick={()=>setBeneficiarios(s=>s.filter((_,j)=>j!==i))}>✕</button></td>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" checked={selecionados.length === beneficiarios.length} onChange={toggleTodos} /></th>
+                  <th>#</th>
+                  <th>Exercício</th>
+                  <th>Empresa / CNPJ</th>
+                  <th>Beneficiário / CPF</th>
+                  <th>Tributáveis</th>
+                  <th>Lucros/Div.</th>
+                  <th>IRRF</th>
+                  <th colSpan="2">Ações</th>
                 </tr>
-              ))}</tbody>
+              </thead>
+              <tbody>
+                {beneficiarios.map((b, i) => (
+                  <tr key={i} className={selecionados.includes(i) ? "row-sel" : "row-unsel"}>
+                    <td><input type="checkbox" checked={selecionados.includes(i)} onChange={() => toggleSel(i)} /></td>
+                    <td className="td-num">{i + 1}</td>
+                    <td>{b.exercicio || (b.anoCalendario ? b.anoCalendario + 1 : '')}</td>
+                    <td>
+                      <div className="td-primary">{b.fontePagadora?.razaoSocial}</div>
+                      <div className="td-secondary">{fmtCNPJ(b.fontePagadora?.cnpj)}</div>
+                    </td>
+                    <td>
+                      <div className="td-primary">{b.beneficiario?.nome}</div>
+                      <div className="td-secondary">{fmtCPF(b.beneficiario?.cpf)}</div>
+                    </td>
+                    <td className="num">{fmtBRL(b.rendimentos?.tributaveis)}</td>
+                    <td className="num">{fmtBRL(b.rendimentos?.lucrosDividendos)}</td>
+                    <td className="num">{fmtBRL(b.rendimentos?.irrf)}</td>
+                    <td className="td-action"><button className="btn-rm" onClick={() => baixarPDFIndividual(b, b.beneficiario?.nome)} title="Baixar PDF individual">📄</button></td>
+                    <td className="td-action"><button className="btn-rm" onClick={() => setBeneficiarios(s => s.filter((_, j) => j !== i))}>✕</button></td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         )}
@@ -877,7 +903,7 @@ textarea {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  table-layout: fixed;                /* Permite controlar larguras e truncar textos */
+  table-layout: fixed;
 }
 
 .preview-table th,
@@ -885,9 +911,8 @@ textarea {
   padding: 7px 10px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
-  white-space: nowrap;                /* Impede quebra de linha */
-  overflow: hidden;                   /* Esconde o que ultrapassar a célula */
-  text-overflow: ellipsis;            /* Exibe '...' quando o texto é maior que a célula */
+  white-space: normal;
+  word-break: break-word;
 }
 
 .preview-table th {
@@ -896,13 +921,14 @@ textarea {
   color: var(--muted);
   text-align: left;
   border-bottom: 2px solid var(--border);
+  white-space: nowrap;
 }
 
 .preview-table tr:hover td {
   background: #f8faff;
 }
 
-/* Colunas que contêm botões não devem truncar (ícones completos) */
+/* Colunas que contêm botões não devem truncar */
 .preview-table td:last-child,
 .preview-table td:nth-last-child(2) {
   overflow: visible;
@@ -911,19 +937,38 @@ textarea {
 }
 
 /* Larguras específicas para cada coluna da tabela de preview */
-.preview-table th:nth-child(1)  { width: 30px;  } /* # */
-.preview-table th:nth-child(2)  { width: 60px;  } /* Exercício */
-.preview-table th:nth-child(3)  { width: 150px; } /* Empresa */
-.preview-table th:nth-child(4)  { width: 120px; } /* CNPJ */
-.preview-table th:nth-child(5)  { width: 150px; } /* Beneficiário */
-.preview-table th:nth-child(6)  { width: 110px; } /* CPF */
-.preview-table th:nth-child(7)  { width: 100px; } /* Tributáveis */
-.preview-table th:nth-child(8)  { width: 100px; } /* Lucros/Div. */
-.preview-table th:nth-child(9)  { width: 80px;  } /* IRRF */
-.preview-table th:nth-child(10) { width: 40px;  } /* PDF individual */
-.preview-table th:nth-child(11) { width: 40px;  } /* Remover */
+.preview-table th:nth-child(1)  { width: 30px; }
+.preview-table th:nth-child(2)  { width: 40px; }
+.preview-table th:nth-child(3)  { width: 70px; }
+.preview-table th:nth-child(4)  { width: auto; }
+.preview-table th:nth-child(5)  { width: auto; }
+.preview-table th:nth-child(6)  { width: 100px; }
+.preview-table th:nth-child(7)  { width: 100px; }
+.preview-table th:nth-child(8)  { width: 80px; }
+.preview-table th:nth-child(9)  { width: 40px; }
+.preview-table th:nth-child(10) { width: 40px; }
 
-/* Valores numéricos alinhados à direita */
+/* Estilos para linhas primárias e secundárias */
+.td-primary {
+  font-weight: 600;
+  font-size: 12px;
+  white-space: normal;
+  word-break: break-word;
+}
+.td-secondary {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: normal;
+  word-break: break-word;
+}
+.td-action {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Valores numéricos alinhados à direita e sem quebra */
 .preview-table .num {
   text-align: right;
   font-family: 'JetBrains Mono', monospace;
