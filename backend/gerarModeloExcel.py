@@ -16,11 +16,11 @@ COLUNAS = [
     ("PREV_COMPLEMENTAR",   "03-Previdência Complementar/FAPI",      20),
     ("PENSAO_ALIMENTICIA",  "04-Pensão Alimentícia",                 20),
     ("IRRF",                "05-IRRF",                               16),
-    ("PARCELA_ISENTA65",    "01-Parcela Isenta 65+",                 20),
+    ("PARCELA_ISENTA65",    "01-Parcela isenta aposentadoria, pensão e reforma (65 anos ou mais)",                 20),
     ("DIARIAS_AJUDAS",      "02-Diárias e Ajudas de Custo",          20),
-    ("MOLESTIA_GRAVE",      "03-Moléstia Grave/Acidente",            20),
+    ("MOLESTIA_GRAVE",      "03-Pensão/aposentadoria/reforma por moléstia grave ou acidente em serviço",            20),
     ("LUCROS_DIVIDENDOS",   "04-Lucros e Dividendos",                22),
-    ("PROLABORE_ISENTO",    "05-Pro-labore isento ME/EPP",           22),
+    ("LUCROS_SIMPLES_NACIONAL",         "05-Valores pagos a titular ou sócio de ME/EPP (exceto pró-labore, aluguéis e serviços)",           22),
     ("INDENIZACOES",        "06-Indenizações/PDV",                   20),
     ("OUTROS_ISENTOS",      "07-Outros Rendimentos Isentos",         22),
     ("TREZE_RENDIMENTOS",   "01-13º Salário",                        20),
@@ -46,7 +46,7 @@ EXEMPLOS = [
      0.00, 0.00, 0.00, 120000.00, 0.00, 0.00, 0.00,
      7000.00, 0.00, 0.00,
      "", "", 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-     "Nada a declarar", "Contador XYZ", "28/02/2026", "Isento conforme IN RFB 1215/2011"],
+     "Nada a declarar", "Contador XYZ", "28/02/2026", "Isento conforme IN RFB 1.215/2011"],
 ]
 
 AZUL_ESCURO, AZUL_HEADER, AZUL_CLARO, VERDE_EX, BRANCO, CINZA = "1F3864", "2563A8", "D9E1F2", "E2EFDA", "FFFFFF", "F5F5F5"
