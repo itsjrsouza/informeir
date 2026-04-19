@@ -23,12 +23,12 @@ const REND_FIELDS = [
   {key:"pensaoAlimenticia", label:"04 - Pensão Alimentícia", sec:3},
   {key:"irrf", label:"05 - Imposto sobre a renda retido na fonte", sec:3},
   // Seção 4
-  {key:"parcelaIsenta65", label:"01 - Parcela Isenta 65 anos ou mais", sec:4},
+  {key:"parcelaIsenta65", label:"01 - Parcela Isenta dos Proventos de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)", sec:4},
   {key:"diariasAjudas", label:"02 - Diárias e Ajudas de Custo", sec:4},
-  {key:"molestiaGrave", label:"03 - Pensão/Aposent. Moléstia Grave ou Acidente", sec:4},
-  {key:"lucrosDividendos", label:"04 - Lucros e Dividendos", sec:4},
-  {key:"prolaboreIsento", label:"05 - Pro-labore isento ME/EPP", sec:4},
-  {key:"indenizacoes", label:"06 - Indenizações por Rescisão/PDV", sec:4},
+  {key:"molestiaGrave", label:"03 - Pensão, Prov.de Aposentadoria ou Reforma por Moléstia Grave e aposentadoria ou Reforma por Acidente em Serviço", sec:4},
+  {key:"lucrosDividendos", label:"04 - Lucro e Dividendo Apurado a partir de 1996 pago por PJ (Lucro Real, Presumido ou Arbitrado)", sec:4},
+  {key:"prolaboreIsento", label:"05 - Vlr. Pago ao Titular ou Sócio da Microempresa ou Empr.de Pequeno Porte, exceto Pro-labore, aluguéis ou Serv.Prest.", sec:4},
+  {key:"indenizacoes", label:"06 - Indenizações por Rescisão de Contrato de Trabalho, inclusive a título de PDV e por Acidente de Trabalho", sec:4},
   {key:"outrosIsentos", label:"07 - Outros Rendimentos Isentos", sec:4},
   // Seção 5
   {key:"trezeRendimentos", label:"01 - 13º Salário", sec:5},
@@ -37,12 +37,12 @@ const REND_FIELDS = [
   // Seção 6 (RRA)
   {key:"rraNumProcesso", label:"6.1 Número do Processo", sec:6, tipo:"texto"},
   {key:"rraMeses", label:"Quantidade de Meses", sec:6, tipo:"numero"},
-  {key:"rraTributaveis", label:"Total Rendimentos Tributáveis", sec:6, tipo:"moeda"},
-  {key:"rraDespesasJudiciais", label:"Despesas com Ação Judicial", sec:6, tipo:"moeda"},
-  {key:"rraInss", label:"Contribuição Previdenciária", sec:6, tipo:"moeda"},
-  {key:"rraPensao", label:"Pensão Alimentícia", sec:6, tipo:"moeda"},
-  {key:"rraIrrf", label:"IRRF", sec:6, tipo:"moeda"},
-  {key:"rraIsentos", label:"Rendimentos Isentos (Moléstia/Acidente)", sec:6, tipo:"moeda"},
+  {key:"rraTributaveis", label:"01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)", sec:6, tipo:"moeda"},
+  {key:"rraDespesasJudiciais", label:"02 - Exclusão: Despesas com a Ação Judicial", sec:6, tipo:"moeda"},
+  {key:"rraInss", label:"03 - Dedução: Contribuição Previdenciária Oficial", sec:6, tipo:"moeda"},
+  {key:"rraPensao", label:"04 - Dedução Pensão Alimentícia", sec:6, tipo:"moeda"},
+  {key:"rraIrrf", label:"05 - Imposto sobre a Renda Retido na Fonte", sec:6, tipo:"moeda"},
+  {key:"rraIsentos", label:"R06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço", sec:6, tipo:"moeda"},
 ];
 
 const INIT_REND = Object.fromEntries(REND_FIELDS.map(f=>[f.key,""]));
@@ -56,7 +56,7 @@ function AbaIndividual(){
   const [responsavel, setResponsavel] = useState({
     nome: "",
     data: "",
-    assinatura: "Isento conforme IN RFB 1215/2011"
+    assinatura: "Isento conforme IN RFB 1.215/2011"
   });
   const [infoComplementar, setInfoComplementar] = useState("");
   const [loading, setLoading] = useState(false);
