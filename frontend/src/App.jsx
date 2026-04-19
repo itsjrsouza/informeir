@@ -42,7 +42,7 @@ const REND_FIELDS = [
   {key:"rraInss", label:"03 - INSS (dedução)", sec:6, tipo:"moeda"},
   {key:"rraPensao", label:"04 - Pensão alimentícia (dedução)", sec:6, tipo:"moeda"},
   {key:"rraIrrf", label:"05 - IRRF", sec:6, tipo:"moeda"},
-  {key:"rraIsentos", label:"06 - Rendimentos isentos (moléstia grave ou acidente)", sec:6, tipo:"moeda"},
+  {key:"rraIsentos", label:"06 - Rend. isentos (moléstia grave ou acidente)", sec:6, tipo:"moeda"},
 ];
 
 const INIT_REND = Object.fromEntries(REND_FIELDS.map(f=>[f.key,""]));
@@ -612,7 +612,7 @@ body {
 }
 
 .field label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
