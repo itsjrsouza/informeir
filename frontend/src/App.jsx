@@ -343,9 +343,6 @@ function AbaLote(){
                   <th>Exercício</th>
                   <th>Empresa / CNPJ</th>
                   <th>Beneficiário / CPF</th>
-                  <th>Tributáveis</th>
-                  <th>Lucros/Div.</th>
-                  <th>IRRF</th>
                   <th colSpan="2">Ações</th>
                 </tr>
               </thead>
@@ -363,9 +360,6 @@ function AbaLote(){
                       <div className="td-primary">{b.beneficiario?.nome}</div>
                       <div className="td-secondary">{fmtCPF(b.beneficiario?.cpf)}</div>
                     </td>
-                    <td className="num">{fmtBRL(b.rendimentos?.tributaveis)}</td>
-                    <td className="num">{fmtBRL(b.rendimentos?.lucrosDividendos)}</td>
-                    <td className="num">{fmtBRL(b.rendimentos?.irrf)}</td>
                     <td className="td-action"><button className="btn-rm" onClick={() => baixarPDFIndividual(b, b.beneficiario?.nome)} title="Baixar PDF individual">📄</button></td>
                     <td className="td-action"><button className="btn-rm" onClick={() => setBeneficiarios(s => s.filter((_, j) => j !== i))}>✕</button></td>
                   </tr>
