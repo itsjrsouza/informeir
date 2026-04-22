@@ -309,7 +309,7 @@ function AbaLote(){
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Informe_${nome}_${beneficiario.anoCalendario || ''}.pdf`;
+      // Não define a.download – usa o nome do servidor (evita "anonymous")
       document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(url);
     } catch(e){
@@ -913,13 +913,13 @@ textarea {
 .preview-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
-  table-layout: fixed;
+  font-size: 11px;
+  table-layout: auto;
 }
 
 .preview-table th,
 .preview-table td {
-  padding: 7px 10px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
   white-space: normal;
@@ -933,43 +933,49 @@ textarea {
   text-align: left;
   border-bottom: 2px solid var(--border);
   white-space: nowrap;
+  font-size: 11px;
 }
 
 .preview-table tr:hover td {
   background: #f8faff;
 }
 
-/* Colunas que contêm botões não devem truncar */
 .preview-table td:last-child,
 .preview-table td:nth-last-child(2) {
-  overflow: visible;
-  text-overflow: clip;
+  white-space: nowrap;
+  width: 1%;
+  text-align: center;
+}
+
+.preview-table th:nth-child(2),
+.preview-table td:nth-child(2),
+.preview-table th:nth-child(3),
+.preview-table td:nth-child(3) {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.preview-table th:nth-child(1),
+.preview-table td:nth-child(1) {
+  width: 1%;
   white-space: nowrap;
 }
 
-/* Larguras específicas para cada coluna da tabela de preview */
-.preview-table th:nth-child(1)  { width: 30px; }
-.preview-table th:nth-child(2)  { width: 40px; }
-.preview-table th:nth-child(3)  { width: 70px; }
-.preview-table th:nth-child(4)  { width: auto; }
-.preview-table th:nth-child(5)  { width: auto; }
-.preview-table th:nth-child(6)  { width: 40px; }
-.preview-table th:nth-child(7)  { width: 40px; }
-
-/* Estilos para linhas primárias e secundárias */
-.td-primary {
-  font-weight: 600;
-  font-size: 12px;
+.preview-table td:nth-child(4),
+.preview-table td:nth-child(5) {
   white-space: normal;
   word-break: break-word;
 }
-.td-secondary {
+
+.td-primary {
+  font-weight: 600;
   font-size: 11px;
+}
+.td-secondary {
+  font-size: 10px;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 1px;
   font-family: 'JetBrains Mono', monospace;
-  white-space: normal;
-  word-break: break-word;
 }
 .td-action {
   text-align: center;
