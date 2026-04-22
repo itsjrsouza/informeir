@@ -30,6 +30,7 @@ COLUNAS = [
     ("RRA_NUM_PROCESSO",            "RRA - Número do Processo",              25),
     ("RRA_MESES",                   "RRA - Quantidade de Meses",             15),
     ("NATUREZA_RENDIMENTO",         "Natureza do Rendimento",                25),
+    ("NATUREZA_RENDIMENTO_RRA",     "Natureza do Rendimento (RRA)",          25),
     ("RRA_TRIBUTAVEIS",             "RRA - Total Rendimentos Tributáveis",   22),
     ("RRA_DESP_JUDICIAIS",          "RRA - Despesas Judiciais",              20),
     ("RRA_INSS",                    "RRA - Contribuição Previdenciária",     20),
@@ -47,7 +48,7 @@ EXEMPLOS = [
      84000.00, 7786.00, 0.00, 0.00, 4200.00,
      0.00, 0.00, 0.00, 0.00, 0.00, 120000.00, 0.00, 0.00,
      7000.00, 0.00, 0.00,
-     "", "", "", 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+     "", "", "Assalariado", "Rendimentos acumulados", 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
      "Nada a declarar", "Contador XYZ", "28/02/2026", "Isento conforme IN RFB 1.215/2011"],
 ]
 
@@ -57,11 +58,11 @@ def borda(cor="CCCCCC"): s=Side(style="thin", color=cor); return Border(left=s, 
 def gerar(output_path):
     wb = Workbook()
     ws = wb.active; ws.title = "MODELO"
-    ws.merge_cells("A1:AM1"); ws["A1"].value = "IMPORTAÇÃO EM LOTE — INFORME DE RENDIMENTOS"
+    ws.merge_cells("A1:AO1"); ws["A1"].value = "IMPORTAÇÃO EM LOTE — INFORME DE RENDIMENTOS"
     ws["A1"].font = Font(bold=True, size=14, color=BRANCO); ws["A1"].fill = PatternFill("solid", fgColor=AZUL_ESCURO)
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 30
-    ws.merge_cells("A2:AM2"); ws["A2"].value = "Preencha uma linha por beneficiário. Não altere os nomes das colunas."
+    ws.merge_cells("A2:AO2"); ws["A2"].value = "Preencha uma linha por beneficiário. Não altere os nomes das colunas."
     ws["A2"].font = Font(italic=True, size=10, color="444444"); ws["A2"].fill = PatternFill("solid", fgColor=AZUL_CLARO)
     ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[2].height = 18
@@ -79,7 +80,7 @@ def gerar(output_path):
             c = ws.cell(row=row_idx, column=col_idx, value=valor); c.font = Font(size=10, color="1a5276")
             c.fill = PatternFill("solid", fgColor=VERDE_EX); c.border = borda()
             c.alignment = Alignment(horizontal="center", vertical="center")
-            if 7 <= col_idx <= 30: c.number_format = '#,##0.00'
+            if 7 <= col_idx <= 32: c.number_format = '#,##0.00'
         ws.row_dimensions[row_idx].height = 18
 
     for row_idx in range(5, 105):
@@ -87,7 +88,7 @@ def gerar(output_path):
             c = ws.cell(row=row_idx, column=col_idx); c.border = borda()
             c.fill = PatternFill("solid", fgColor=BRANCO if row_idx % 2 == 0 else CINZA)
             c.alignment = Alignment(horizontal="center", vertical="center")
-            if 7 <= col_idx <= 30: c.number_format = '#,##0.00'
+            if 7 <= col_idx <= 32: c.number_format = '#,##0.00'
         ws.row_dimensions[row_idx].height = 18
 
     ws.freeze_panes = "A4"

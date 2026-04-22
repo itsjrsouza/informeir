@@ -26,6 +26,8 @@ COL_MAP = {
     "OUTROS_TRIB_EXCL": ("outrosTribExclusiva", "rendimentos"),
     "RRA_NUM_PROCESSO": ("rraNumProcesso", "rendimentos"),
     "RRA_MESES": ("rraMeses", "rendimentos"),
+    "NATUREZA_RENDIMENTO": ("naturezaRendimento", "info"),
+    "NATUREZA_RENDIMENTO_RRA": ("naturezaRendimentoRRA", "info"),
     "RRA_TRIBUTAVEIS": ("rraTributaveis", "rendimentos"),
     "RRA_DESP_JUDICIAIS": ("rraDespesasJudiciais", "rendimentos"),
     "RRA_INSS": ("rraInss", "rendimentos"),
@@ -33,9 +35,9 @@ COL_MAP = {
     "RRA_IRRF": ("rraIrrf", "rendimentos"),
     "RRA_ISENTOS": ("rraIsentos", "rendimentos"),
     "INFO_COMPLEMENTARES": ("informacoesComplementares", "info"),
-    "RESP_NOME": ("responsavelNome", "responsavel"),
-    "RESP_DATA": ("responsavelData", "responsavel"),
-    "RESP_ASSINATURA": ("responsavelAssinatura", "responsavel"),
+    "RESP_NOME": ("nome", "responsavel"),
+    "RESP_DATA": ("data", "responsavel"),
+    "RESP_ASSINATURA": ("assinatura", "responsavel"),
 }
 
 PALAVRAS_ROTULO = {'ano-calendário', 'ano calendário', 'ano', 'exercício', 'nome completo', 'cnpj', 'cpf', 'razão social'}
@@ -102,11 +104,11 @@ def parse(caminho):
                 else:
                     beneficiario["rendimentos"][chave] = limpar_numero(val)
             elif secao == "info":
-                info = val
+                if chave in ("naturezaRendimento", "naturezaRendimentoRRA", "informacoesComplementares"):
+                    beneficiario[chave] = val
             elif secao == "responsavel":
-                beneficiario["responsavel"][chave.replace('responsavel','').lower()] = val
+                beneficiario["responsavel"][chave] = val
 
-        beneficiario["informacoesComplementares"] = info
         if not beneficiario.get("exercicio") and beneficiario.get("anoCalendario"): beneficiario["exercicio"] = beneficiario["anoCalendario"] + 1
         if not beneficiario["fontePagadora"].get("cnpj"): erros_linha.append("CNPJ_EMPRESA vazio")
         if not beneficiario["fontePagadora"].get("razaoSocial"): erros_linha.append("RAZAO_SOCIAL vazia")
@@ -117,6 +119,7 @@ def parse(caminho):
             erros.append({"linha": idx + header_row + 2, "erros": erros_linha, "nome": beneficiario["beneficiario"].get("nome", "?")})
             continue
         beneficiarios.append(beneficiario)
+
     return {"total": len(beneficiarios), "registros": beneficiarios, "validos": len(beneficiarios), "invalidos": len(erros), "erros": erros}
 
 if __name__ == "__main__":

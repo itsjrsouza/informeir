@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gerarPDF.py v3
+gerarPDF.py v4
 Recebe JSON de um informe e gera o PDF via reportlab.
 Uso: python3 gerarPDF.py <dados.json> <saida.pdf>
 """
@@ -66,6 +66,8 @@ def gerar_pdf(dados, output_path):
     rd = dados.get('rendimentos', {})
     resp = dados.get('responsavel', {})
     info = dados.get('informacoesComplementares', '')
+    natureza = dados.get('naturezaRendimento', 'Assalariado')
+    natureza_rra = dados.get('naturezaRendimentoRRA', '')
 
     doc = SimpleDocTemplate(output_path, pagesize=A4,
                            leftMargin=5.0*mm, rightMargin=7.5*mm,
@@ -124,7 +126,7 @@ def gerar_pdf(dados, output_path):
                  [fmt_cpf(bn.get('cpf','')) or ' ', bn.get('nome','') or ' ']],
                 [LARGURA_CNPJ_CPF, LARGURA_NOME_EMPRESARIAL],
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
-    nat_table = Table([['Natureza do Rendimento: Assalariado']], colWidths=[LARGURA_UTIL])
+    nat_table = Table([[f'Natureza do Rendimento: {natureza}']], colWidths=[LARGURA_UTIL])
     nat_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black),
                                    ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10)]))
     story.append(nat_table)
@@ -179,7 +181,7 @@ def gerar_pdf(dados, output_path):
     story.append(linha_61)
 
     linha_natureza = Table([[
-        Paragraph('<b>Natureza do Rendimento:</b>', styles['Left']),
+        Paragraph(f'<b>Natureza do Rendimento:</b> {natureza_rra}', styles['Left']),
         Paragraph('<b>Valores em Reais</b>', styles['Right'])
     ]], colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES])
     linha_natureza.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),

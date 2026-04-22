@@ -54,6 +54,8 @@ function AbaIndividual(){
   const [fonte, setFonte] = useState({razaoSocial:"", cnpj:""});
   const [benef, setBenef] = useState({nome:"", cpf:""});
   const [rend, setRend] = useState(INIT_REND);
+  const [naturezaRendimento, setNaturezaRendimento] = useState("");
+  const [naturezaRendimentoRRA, setNaturezaRendimentoRRA] = useState("");
   const [responsavel, setResponsavel] = useState({
     nome: "",
     data: "",
@@ -80,6 +82,8 @@ function AbaIndividual(){
         fontePagadora: fonte,
         beneficiario: benef,
         rendimentos: rend,
+        naturezaRendimento: naturezaRendimento || "Assalariado",
+        naturezaRendimentoRRA: naturezaRendimentoRRA || "",
         responsavel: {
           nome: responsavel.nome || "Não informado",
           data: responsavel.data || new Date().toLocaleDateString('pt-BR'),
@@ -144,6 +148,13 @@ function AbaIndividual(){
         </div>
       </div>
 
+      <div className="card">
+        <SectionTitle number="2.1" title="Natureza do Rendimento"/>
+        <Field label="Descreva a natureza do rendimento">
+          <input type="text" value={naturezaRendimento} onChange={e=>setNaturezaRendimento(e.target.value)} placeholder="Ex: Rendimentos do trabalho assalariado" />
+        </Field>
+      </div>
+
       {[
         {n:3, t:"3. Rendimentos Tributáveis, Deduções e Imposto Retido na Fonte"},
         {n:4, t:"4. Rendimentos Isentos e Não Tributáveis"},
@@ -171,7 +182,10 @@ function AbaIndividual(){
 
       <div className="card">
         <SectionTitle number="6" title="Rendimentos Recebidos Acumuladamente (RRA)"/>
-        <div className="g3">
+        <Field label="Natureza do Rendimento (RRA)">
+          <input type="text" value={naturezaRendimentoRRA} onChange={e=>setNaturezaRendimentoRRA(e.target.value)} placeholder="Ex: Rendimentos acumulados de ação judicial" />
+        </Field>
+        <div className="g3" style={{marginTop: 14}}>
           {sec(6).map(f => (
             f.tipo === "texto" ? (
               <Field key={f.key} label={f.label}>
@@ -217,6 +231,8 @@ function AbaIndividual(){
           setFonte({razaoSocial:"",cnpj:""});
           setBenef({nome:"",cpf:""});
           setRend(INIT_REND);
+          setNaturezaRendimento("");
+          setNaturezaRendimentoRRA("");
           setResponsavel({nome:"", data:"", assinatura:"Isento conforme IN RFB 1215/2011"});
           setInfoComplementar("");
           setErro(null); setOk(false);
@@ -344,6 +360,7 @@ function AbaLote(){
                   <th>Exercício</th>
                   <th>Empresa / CNPJ</th>
                   <th>Beneficiário / CPF</th>
+                  <th>Natureza</th>
                   <th colSpan="2">Ações</th>
                 </tr>
               </thead>
@@ -361,6 +378,7 @@ function AbaLote(){
                       <div className="td-primary">{b.beneficiario?.nome}</div>
                       <div className="td-secondary">{fmtCPF(b.beneficiario?.cpf)}</div>
                     </td>
+                    <td>{b.naturezaRendimento || "Assalariado"}</td>
                     <td className="td-action"><button className="btn-rm" onClick={() => baixarPDFIndividual(b, b.beneficiario?.nome)} title="Baixar PDF individual">📄</button></td>
                     <td className="td-action"><button className="btn-rm" onClick={() => setBeneficiarios(s => s.filter((_, j) => j !== i))}>✕</button></td>
                   </tr>
@@ -937,11 +955,9 @@ textarea {
 .preview-table th:nth-child(3)  { width: 70px; }
 .preview-table th:nth-child(4)  { width: auto; }
 .preview-table th:nth-child(5)  { width: auto; }
-.preview-table th:nth-child(6)  { width: 100px; }
-.preview-table th:nth-child(7)  { width: 100px; }
-.preview-table th:nth-child(8)  { width: 80px; }
-.preview-table th:nth-child(9)  { width: 40px; }
-.preview-table th:nth-child(10) { width: 40px; }
+.preview-table th:nth-child(6)  { width: 150px; }
+.preview-table th:nth-child(7)  { width: 40px; }
+.preview-table th:nth-child(8)  { width: 40px; }
 
 /* Estilos para linhas primárias e secundárias */
 .td-primary {
@@ -963,13 +979,6 @@ textarea {
   vertical-align: middle;
 }
 
-/* Valores numéricos alinhados à direita e sem quebra */
-.preview-table .num {
-  text-align: right;
-  font-family: 'JetBrains Mono', monospace;
-  white-space: nowrap;
-}
-
 /* ==========================================================================
    UTILITÁRIOS
    ========================================================================== */
@@ -978,7 +987,6 @@ textarea {
   font-size: 11px;
 }
 
-/* Spinners (carregamento) */
 .spin {
   width: 14px;
   height: 14px;
