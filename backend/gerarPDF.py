@@ -24,8 +24,35 @@ try:
 except:
     FONT_NAME = 'Helvetica'
 
+# ---------- CONFIGURAÇÕES DE LAYOUT (proporções exatas do Figma) ----------
+LARGURA_UTIL = 197.5*mm   # 1268px no Figma
+
+# Seções 3, 4, 5 e linha "Natureza do Rendimento" (descrição + valor)
+# Proporção: 452px (texto) / 103px (valor)
+LARGURA_VALORES = LARGURA_UTIL * (103 / (452+103))   # ~36.7 mm
+LARGURA_DESCRICAO = LARGURA_UTIL - LARGURA_VALORES
+
+# Seção 1 e 2 (Nome Empresarial/Nome Completo e CNPJ/CPF)
+# Proporção: 556px (Nome) / 428px (CNPJ/CPF)
+LARGURA_NOME_EMPRESARIAL = LARGURA_UTIL * (556 / (556+428))   # ~111.6 mm
+LARGURA_CNPJ_CPF = LARGURA_UTIL - LARGURA_NOME_EMPRESARIAL
+
+# Seção 6 - Linha 6.1 (Número Processo / Quantidade meses / 0)
+# Proporção: 298px / 90px / 54px
+LARGURA_PROCESSO = LARGURA_UTIL * (298 / (298+90+54))   # ~133.1 mm
+LARGURA_MESES = LARGURA_UTIL * (90 / (298+90+54))       # ~40.3 mm
+LARGURA_ZERO = LARGURA_UTIL - LARGURA_PROCESSO - LARGURA_MESES
+
+# Seção 8 (Nome / Data / Assinatura)
+# Proporção: 230px / 96px / 231px
+LARGURA_NOME_RESP = LARGURA_UTIL * (230 / (230+96+231))   # ~81.6 mm
+LARGURA_DATA = LARGURA_UTIL * (96 / (230+96+231))         # ~34.0 mm
+LARGURA_ASSINATURA = LARGURA_UTIL - LARGURA_NOME_RESP - LARGURA_DATA
+
+# Recuo esquerdo para os textos descritivos
+RECUO_ESQUERDO_TEXTO = 2*mm
+
 def fmt_brl(val):
-    """Formata valor monetário brasileiro, retornando string com 2 casas decimais."""
     if val is None or str(val).strip() == "":
         return "0,00"
     s = str(val).strip().replace("R$", "").strip()
@@ -42,7 +69,7 @@ def fmt_brl(val):
                 inteiro_fmt = "." + inteiro_fmt
             inteiro_fmt = d + inteiro_fmt
         return f"{inteiro_fmt},{decimal}"
-    except Exception:
+    except:
         return "0,00"
 
 def fmt_cnpj(v):
@@ -63,15 +90,20 @@ def gerar_pdf(dados, output_path):
     info = dados.get('informacoesComplementares', '')
 
     doc = SimpleDocTemplate(output_path, pagesize=A4,
-                           leftMargin=15*mm, rightMargin=15*mm,
-                           topMargin=10*mm, bottomMargin=10*mm)
+                           leftMargin=5.0*mm,
+                           rightMargin=7.5*mm,
+                           topMargin=0*mm,
+                           bottomMargin=4.9*mm)
 
     styles = getSampleStyleSheet()
     styles['Normal'].fontName = FONT_NAME
     styles['Normal'].fontSize = 10
     styles['Normal'].leading = 12
 
-    styles.add(ParagraphStyle(name='Left', parent=styles['Normal'], alignment=TA_LEFT))
+    styles.add(ParagraphStyle(name='Left', parent=styles['Normal'],
+                              alignment=TA_LEFT,
+                              leftIndent=RECUO_ESQUERDO_TEXTO,
+                              rightIndent=RECUO_ESQUERDO_TEXTO))
     styles.add(ParagraphStyle(name='Right', parent=styles['Normal'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
     styles.add(ParagraphStyle(name='Bold', parent=styles['Normal'], fontName=FONT_NAME, bold=True))
@@ -89,7 +121,7 @@ def gerar_pdf(dados, output_path):
         Paragraph(f'<b>Exercício de {exercicio}</b>', styles['Left']),
         Paragraph(f'<b>Ano-Calendário {ano}</b>', styles['Right'])
     ]]
-    t_periodo = Table(data_periodo, colWidths=[85*mm, 85*mm])
+    t_periodo = Table(data_periodo, colWidths=[LARGURA_UTIL/2, LARGURA_UTIL/2])
     t_periodo.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
     story.append(t_periodo)
     story.append(Spacer(1, 2*mm))
@@ -127,55 +159,55 @@ def gerar_pdf(dados, output_path):
     add_section(Paragraph('<b>1. FONTE PAGADORA PESSOA JURÍDICA OU PESSOA FÍSICA</b>', styles['Normal']),
                 [[Paragraph('<b>Nome Empresarial/Nome Completo</b>', styles['Normal']), Paragraph('<b>CNPJ/CPF</b>', styles['Normal'])],
                  [fp.get('razaoSocial','') or ' ', fmt_cnpj(fp.get('cnpj','')) or ' ']],
-                [120*mm, 50*mm],
+                [LARGURA_NOME_EMPRESARIAL, LARGURA_CNPJ_CPF],
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
 
     # Seção 2
     add_section(Paragraph('<b>2. PESSOA FÍSICA BENEFICIÁRIA DOS RENDIMENTOS</b>', styles['Normal']),
                 [[Paragraph('<b>CPF</b>', styles['Normal']), Paragraph('<b>Nome Completo</b>', styles['Normal'])],
                  [fmt_cpf(bn.get('cpf','')) or ' ', bn.get('nome','') or ' ']],
-                [50*mm, 120*mm],
+                [LARGURA_CNPJ_CPF, LARGURA_NOME_EMPRESARIAL],
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
-    nat_table = Table([['Natureza do Rendimento: Assalariado']], colWidths=[170*mm])
+
+    nat_table = Table([['Natureza do Rendimento: Assalariado']], colWidths=[LARGURA_UTIL])
     nat_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black),
                                    ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
                                    ('FONTSIZE', (0,0), (-1,-1), 10)]))
     story.append(nat_table)
     story.append(Spacer(1, 2*mm))
 
-# Seção 3
+    # Seção 3
     add_section(Paragraph('<b>3. RENDIMENTOS TRIBUTÁVEIS, DEDUÇÕES E IMPOSTO RETIDO NA FONTE</b>', styles['Normal']),
-            [[Paragraph('01 - Total dos Rendimentos (inclusive Férias)', styles['Left']), Paragraph(fmt_brl(rd.get('tributaveis')), styles['Right'])],
-             [Paragraph('02 - Contribuição Previdenciária Oficial', styles['Left']), Paragraph(fmt_brl(rd.get('inss')), styles['Right'])],
-             [Paragraph('03 - Contrib. Previd. Complementar / FAPI', styles['Left']), Paragraph(fmt_brl(rd.get('prevComplementar')), styles['Right'])],
-             [Paragraph('04 - Pensão Alimentícia', styles['Left']), Paragraph(fmt_brl(rd.get('pensaoAlimenticia')), styles['Right'])],
-             [Paragraph('05 - Imposto sobre a renda retido na fonte', styles['Left']), Paragraph(fmt_brl(rd.get('irrf')), styles['Right'])]],
-            [130*mm, 40*mm])
+                [[Paragraph('01 - Total dos Rendimentos (inclusive Férias)', styles['Left']), Paragraph(fmt_brl(rd.get('tributaveis')), styles['Right'])],
+                 [Paragraph('02 - Contribuição Previdenciária Oficial', styles['Left']), Paragraph(fmt_brl(rd.get('inss')), styles['Right'])],
+                 [Paragraph('03 - Contrib. Previd. Complementar / FAPI', styles['Left']), Paragraph(fmt_brl(rd.get('prevComplementar')), styles['Right'])],
+                 [Paragraph('04 - Pensão Alimentícia', styles['Left']), Paragraph(fmt_brl(rd.get('pensaoAlimenticia')), styles['Right'])],
+                 [Paragraph('05 - Imposto sobre a renda retido na fonte', styles['Left']), Paragraph(fmt_brl(rd.get('irrf')), styles['Right'])]],
+                [LARGURA_DESCRICAO, LARGURA_VALORES])
 
-# Seção 4
+    # Seção 4
     add_section(Paragraph('<b>4. RENDIMENTOS ISENTOS E NÃO TRIBUTÁVEIS</b>', styles['Normal']),
-            [[Paragraph('01 - Parcela Isenta dos Proventos de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta65')), styles['Right'])],
-            [Paragraph('01 - Parcela Isenta do 13º de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get      ('parcelaIsenta13')), styles['Right'])],
-             [Paragraph('03 - Diárias e Ajudas de Custo', styles['Left']), Paragraph(fmt_brl(rd.get('diariasAjudas')), styles['Right'])],
-             [Paragraph('04 - Pensão, Prov.de Aposentadoria ou Reforma por Moléstia Grave e aposentadoria ou Reforma por Acidente em Serviço', styles['Left']), Paragraph(fmt_brl(rd.get('molestiaGrave')), styles['Right'])],
-             [Paragraph('05 - Lucro e Dividendo Apurado a partir de 1996 pago por PJ (Lucro Real, Presumido ou Arbitrado)', styles['Left']), Paragraph(fmt_brl(rd.get('lucrosDividendos')), styles['Right'])],
-             [Paragraph('06 - Vlr. Pago ao Titular ou Sócio da Microempresa ou Empr.de Pequeno Porte, exceto Pro-labore, aluguéis ou Serv.Prest.', styles['Left']), Paragraph(fmt_brl(rd.get('prolaboreIsento')), styles['Right'])],
-             [Paragraph('07 - Indenizações por Rescisão de Contrato de Trabalho, inclusive a título de PDV e por Acidente de Trabalho', styles['Left']), Paragraph(fmt_brl(rd.get('indenizacoes')), styles['Right'])],
-             [Paragraph('08 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosIsentos')), styles['Right'])]],
-            [130*mm, 40*mm])
+                [[Paragraph('01 - Parcela Isenta dos Proventos de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta65')), styles['Right'])],
+                 [Paragraph('01 - Parcela Isenta do 13º de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta13')), styles['Right'])],
+                 [Paragraph('03 - Diárias e Ajudas de Custo', styles['Left']), Paragraph(fmt_brl(rd.get('diariasAjudas')), styles['Right'])],
+                 [Paragraph('04 - Pensão, Prov.de Aposentadoria ou Reforma por Moléstia Grave e aposentadoria ou Reforma por Acidente em Serviço', styles['Left']), Paragraph(fmt_brl(rd.get('molestiaGrave')), styles['Right'])],
+                 [Paragraph('05 - Lucro e Dividendo Apurado a partir de 1996 pago por PJ (Lucro Real, Presumido ou Arbitrado)', styles['Left']), Paragraph(fmt_brl(rd.get('lucrosDividendos')), styles['Right'])],
+                 [Paragraph('06 - Vlr. Pago ao Titular ou Sócio da Microempresa ou Empr.de Pequeno Porte, exceto Pro-labore, aluguéis ou Serv.Prest.', styles['Left']), Paragraph(fmt_brl(rd.get('prolaboreIsento')), styles['Right'])],
+                 [Paragraph('07 - Indenizações por Rescisão de Contrato de Trabalho, inclusive a título de PDV e por Acidente de Trabalho', styles['Left']), Paragraph(fmt_brl(rd.get('indenizacoes')), styles['Right'])],
+                 [Paragraph('08 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosIsentos')), styles['Right'])]],
+                [LARGURA_DESCRICAO, LARGURA_VALORES])
 
-# Seção 5
+    # Seção 5
     add_section(Paragraph('<b>5. RENDIMENTOS SUJEITOS À TRIBUTAÇÃO EXCLUSIVA</b>', styles['Normal']),
-            [[Paragraph('01 - 13º Salário', styles['Left']), Paragraph(fmt_brl(rd.get('trezeRendimentos')), styles['Right'])],
-             [Paragraph('02 - IRRF sobre 13º Salário', styles['Left']), Paragraph(fmt_brl(rd.get('trezeIrrf')), styles['Right'])],
-             [Paragraph('03 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosTribExclusiva')), styles['Right'])]],
-            [130*mm, 40*mm])
+                [[Paragraph('01 - 13º Salário', styles['Left']), Paragraph(fmt_brl(rd.get('trezeRendimentos')), styles['Right'])],
+                 [Paragraph('02 - IRRF sobre 13º Salário', styles['Left']), Paragraph(fmt_brl(rd.get('trezeIrrf')), styles['Right'])],
+                 [Paragraph('03 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosTribExclusiva')), styles['Right'])]],
+                [LARGURA_DESCRICAO, LARGURA_VALORES])
 
-    # Seção 6 - RRA (Rendimentos Recebidos Acumuladamente)
-    # 1) Cabeçalho único ocupando 100% da largura
+    # Seção 6 - RRA
     titulo_secao6 = Table(
         [[Paragraph('<b>6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)</b>', styles['Normal'])]],
-        colWidths=[170*mm]
+        colWidths=[LARGURA_UTIL]
     )
     titulo_secao6.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
@@ -188,7 +220,6 @@ def gerar_pdf(dados, output_path):
     ]))
     story.append(titulo_secao6)
 
-    # 2) Linha 6.1 com 3 colunas: "6.1 - Número do Processo:" | "Quantidade de meses" | "0"
     proc_val = rd.get('rraNumProcesso', '')
     meses_val = rd.get('rraMeses', '')
     linha_61 = Table(
@@ -197,7 +228,7 @@ def gerar_pdf(dados, output_path):
             Paragraph(f'<b>Quantidade de meses:</b> {meses_val}', styles['Left']),
             '0'
         ]],
-        colWidths=[70*mm, 60*mm, 40*mm]
+        colWidths=[LARGURA_PROCESSO, LARGURA_MESES, LARGURA_ZERO]
     )
     linha_61.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
@@ -212,13 +243,12 @@ def gerar_pdf(dados, output_path):
     ]))
     story.append(linha_61)
 
-    # 3) Linha "Natureza do Rendimento:" (esquerda) | "Valores em Reais" (direita)
     linha_natureza = Table(
         [[
             Paragraph('<b>Natureza do Rendimento:</b>', styles['Left']),
             Paragraph('<b>Valores em Reais</b>', styles['Right'])
         ]],
-        colWidths=[130*mm, 40*mm]
+        colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES]
     )
     linha_natureza.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
@@ -233,34 +263,15 @@ def gerar_pdf(dados, output_path):
     ]))
     story.append(linha_natureza)
 
-    # 4) Tabela de itens com 2 colunas fixas (descrição à esquerda, valor à direita)
     itens_rra = [
-        [
-            Paragraph('01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)', styles['Left']),
-            Paragraph(fmt_brl(rd.get('rraTributaveis')), styles['Right'])
-        ],
-        [
-            Paragraph('02 - Exclusão: Despesas com a Ação Judicial', styles['Left']),
-            Paragraph(fmt_brl(rd.get('rraDespesasJudiciais')), styles['Right'])
-        ],
-        [
-            Paragraph('03 - Dedução: Contribuição Previdenciária Oficial', styles['Left']),
-            Paragraph(fmt_brl(rd.get('rraInss')), styles['Right'])
-        ],
-        [
-            Paragraph('04 - Dedução Pensão Alimentícia', styles['Left']),
-            Paragraph(fmt_brl(rd.get('rraPensao')), styles['Right'])
-        ],
-        [
-            Paragraph('05 - Imposto sobre a Renda Retido na Fonte', styles['Left']),
-            Paragraph(fmt_brl(rd.get('rraIrrf')), styles['Right'])
-        ],
-        [
-            Paragraph('06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço', styles['Left']),
-            Paragraph(fmt_brl(rd.get('rraIsentos')), styles['Right'])
-        ]
+        [Paragraph('01 - Total dos Rendimentos Tributáveis (inclusive Férias e Décimo Terceiro Salário)', styles['Left']), Paragraph(fmt_brl(rd.get('rraTributaveis')), styles['Right'])],
+        [Paragraph('02 - Exclusão: Despesas com a Ação Judicial', styles['Left']), Paragraph(fmt_brl(rd.get('rraDespesasJudiciais')), styles['Right'])],
+        [Paragraph('03 - Dedução: Contribuição Previdenciária Oficial', styles['Left']), Paragraph(fmt_brl(rd.get('rraInss')), styles['Right'])],
+        [Paragraph('04 - Dedução Pensão Alimentícia', styles['Left']), Paragraph(fmt_brl(rd.get('rraPensao')), styles['Right'])],
+        [Paragraph('05 - Imposto sobre a Renda Retido na Fonte', styles['Left']), Paragraph(fmt_brl(rd.get('rraIrrf')), styles['Right'])],
+        [Paragraph('06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço', styles['Left']), Paragraph(fmt_brl(rd.get('rraIsentos')), styles['Right'])]
     ]
-    tabela_itens = Table(itens_rra, colWidths=[130*mm, 40*mm])
+    tabela_itens = Table(itens_rra, colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES])
     tabela_itens.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
@@ -276,7 +287,7 @@ def gerar_pdf(dados, output_path):
     story.append(Spacer(1, 2*mm))
 
     # Seção 7
-    story.append(Table([[Paragraph('<b>7. INFORMAÇÕES COMPLEMENTARES</b>', styles['Normal'])]], colWidths=[170*mm], style=[
+    story.append(Table([[Paragraph('<b>7. INFORMAÇÕES COMPLEMENTARES</b>', styles['Normal'])]], colWidths=[LARGURA_UTIL], style=[
         ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey),
         ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
         ('FONTSIZE', (0,0), (-1,-1), 10),
@@ -285,7 +296,7 @@ def gerar_pdf(dados, output_path):
         ('BOTTOMPADDING', (0,0), (-1,-1), 2),
         ('GRID', (0,0), (-1,-1), 0.5, colors.black)
     ]))
-    info_table = Table([[Paragraph(info or 'Nada a declarar', styles['Normal'])]], colWidths=[170*mm])
+    info_table = Table([[Paragraph(info or 'Nada a declarar', styles['Normal'])]], colWidths=[LARGURA_UTIL])
     info_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
@@ -298,13 +309,15 @@ def gerar_pdf(dados, output_path):
     story.append(info_table)
     story.append(Spacer(1, 2*mm))
 
-    # Seção 8
+    # Seção 8 (ORDEM CORRIGIDA)
     add_section(Paragraph('<b>8. RESPONSÁVEL PELAS INFORMAÇÕES</b>', styles['Normal']),
-                [[Paragraph('<b>Nome</b>', styles['Normal']), Paragraph('<b>Data</b>', styles['Normal']), Paragraph('<b>Assinatura</b>', styles['Normal'])],
+                [[Paragraph('<b>Nome</b>', styles['Normal']),
+                  Paragraph('<b>Data</b>', styles['Normal']),
+                  Paragraph('<b>Assinatura</b>', styles['Normal'])],
                  [resp.get('nome', 'Não informado'),
                   resp.get('data', '  /  /    '),
                   Paragraph(resp.get('assinatura', 'Isento conforme IN RFB 1.215/2011'), styles['Small'])]],
-                [70*mm, 40*mm, 60*mm])
+                [LARGURA_NOME_RESP, LARGURA_DATA, LARGURA_ASSINATURA])
 
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph('<i>Aprovado pela Instrução Normativa RFB nº 2.060, de 13 de dezembro de 2021.</i>', styles['Normal']))
