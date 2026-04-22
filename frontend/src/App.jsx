@@ -360,7 +360,6 @@ function AbaLote(){
                   <th>Exercício</th>
                   <th>Empresa / CNPJ</th>
                   <th>Beneficiário / CPF</th>
-                  <th>Natureza</th>
                   <th colSpan="2">Ações</th>
                 </tr>
               </thead>
@@ -378,7 +377,6 @@ function AbaLote(){
                       <div className="td-primary">{b.beneficiario?.nome}</div>
                       <div className="td-secondary">{fmtCPF(b.beneficiario?.cpf)}</div>
                     </td>
-                    <td>{b.naturezaRendimento || "Assalariado"}</td>
                     <td className="td-action"><button className="btn-rm" onClick={() => baixarPDFIndividual(b, b.beneficiario?.nome)} title="Baixar PDF individual">📄</button></td>
                     <td className="td-action"><button className="btn-rm" onClick={() => setBeneficiarios(s => s.filter((_, j) => j !== i))}>✕</button></td>
                   </tr>
@@ -955,9 +953,8 @@ textarea {
 .preview-table th:nth-child(3)  { width: 70px; }
 .preview-table th:nth-child(4)  { width: auto; }
 .preview-table th:nth-child(5)  { width: auto; }
-.preview-table th:nth-child(6)  { width: 150px; }
+.preview-table th:nth-child(6)  { width: 40px; }
 .preview-table th:nth-child(7)  { width: 40px; }
-.preview-table th:nth-child(8)  { width: 40px; }
 
 /* Estilos para linhas primárias e secundárias */
 .td-primary {

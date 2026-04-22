@@ -189,7 +189,6 @@ export default function ImportacaoLote({ onVoltar }) {
                     <th>Exercício</th>
                     <th>Empresa / CNPJ</th>
                     <th>Beneficiário / CPF</th>
-                    <th>Natureza</th>
                     <th colSpan="2">Ações</th>
                   </tr>
                 </thead>
@@ -201,7 +200,6 @@ export default function ImportacaoLote({ onVoltar }) {
                       <td>{reg.exercicio || (reg.anoCalendario ? reg.anoCalendario + 1 : '')}</td>
                       <td><div className="td-primary">{reg.fontePagadora?.razaoSocial}</div><div className="td-secondary">{fmtCNPJ(reg.fontePagadora?.cnpj)}</div></td>
                       <td><div className="td-primary">{reg.beneficiario?.nome}</div><div className="td-secondary">{fmtCPF(reg.beneficiario?.cpf)}</div></td>
-                      <td>{reg.naturezaRendimento || "Assalariado"}</td>
                       <td className="td-action"><button className="btn-rm" onClick={() => baixarPDFIndividual(reg, reg.beneficiario?.nome)} title="Baixar PDF individual">📄</button></td>
                       <td className="td-action"><button className="btn-rm" onClick={() => setResultado(prev => ({ ...prev, registros: prev.registros.filter((_, j) => j !== i) }))}>✕</button></td>
                     </tr>

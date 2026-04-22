@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gerarPDF.py v4
+gerarPDF.py v5 (fonte 8px)
 Recebe JSON de um informe e gera o PDF via reportlab.
 Uso: python3 gerarPDF.py <dados.json> <saida.pdf>
 """
@@ -75,14 +75,15 @@ def gerar_pdf(dados, output_path):
 
     styles = getSampleStyleSheet()
     styles['Normal'].fontName = FONT_NAME
-    styles['Normal'].fontSize = 10
-    styles['Normal'].leading = 12
+    styles['Normal'].fontSize = 8      # ← FONTE 8px
+    styles['Normal'].leading = 10      # entrelinha ajustada
+
     styles.add(ParagraphStyle(name='Left', parent=styles['Normal'], alignment=TA_LEFT,
                               leftIndent=RECUO_ESQUERDO_TEXTO, rightIndent=RECUO_ESQUERDO_TEXTO))
     styles.add(ParagraphStyle(name='Right', parent=styles['Normal'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
     styles.add(ParagraphStyle(name='Bold', parent=styles['Normal'], fontName=FONT_NAME, bold=True))
-    styles.add(ParagraphStyle(name='Small', parent=styles['Normal'], fontSize=8))
+    styles.add(ParagraphStyle(name='Small', parent=styles['Normal'], fontSize=7))
 
     story = []
     story.append(Paragraph('<b>MINISTÉRIO DA FAZENDA</b>', styles['Center']))
@@ -101,11 +102,11 @@ def gerar_pdf(dados, output_path):
     def add_section(title, data, col_widths, header_style=None):
         story.append(Table([[title]], colWidths=[sum(col_widths)], style=[
             ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-            ('FONTSIZE', (0,0), (-1,-1), 10), ('LEFTPADDING', (0,0), (-1,-1), 3),
+            ('FONTSIZE', (0,0), (-1,-1), 8), ('LEFTPADDING', (0,0), (-1,-1), 3),
             ('TOPPADDING', (0,0), (-1,-1), 2), ('BOTTOMPADDING', (0,0), (-1,-1), 2),
             ('GRID', (0,0), (-1,-1), 0.5, colors.black)]))
         t = Table(data, colWidths=col_widths)
-        style = [('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10),
+        style = [('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 8),
                  ('GRID', (0,0), (-1,-1), 0.5, colors.black), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
                  ('LEFTPADDING', (0,0), (-1,-1), 4), ('RIGHTPADDING', (0,0), (-1,-1), 4),
                  ('TOPPADDING', (0,0), (-1,-1), 3), ('BOTTOMPADDING', (0,0), (-1,-1), 3)]
@@ -128,7 +129,7 @@ def gerar_pdf(dados, output_path):
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
     nat_table = Table([[f'Natureza do Rendimento: {natureza}']], colWidths=[LARGURA_UTIL])
     nat_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black),
-                                   ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10)]))
+                                   ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 8)]))
     story.append(nat_table)
     story.append(Spacer(1, 2*mm))
 
@@ -163,7 +164,7 @@ def gerar_pdf(dados, output_path):
     # Seção 6
     titulo_secao6 = Table([[Paragraph('<b>6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)</b>', styles['Normal'])]], colWidths=[LARGURA_UTIL])
     titulo_secao6.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.lightgrey), ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-                                       ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10),
+                                       ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 8),
                                        ('LEFTPADDING', (0,0), (-1,-1), 3), ('TOPPADDING', (0,0), (-1,-1), 2),
                                        ('BOTTOMPADDING', (0,0), (-1,-1), 2)]))
     story.append(titulo_secao6)
@@ -174,7 +175,7 @@ def gerar_pdf(dados, output_path):
         '0'
     ]], colWidths=[LARGURA_PROCESSO, LARGURA_MESES, LARGURA_ZERO])
     linha_61.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-                                  ('FONTSIZE', (0,0), (-1,-1), 10), ('ALIGN', (2,0), (2,0), 'CENTER'),
+                                  ('FONTSIZE', (0,0), (-1,-1), 8), ('ALIGN', (2,0), (2,0), 'CENTER'),
                                   ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('LEFTPADDING', (0,0), (-1,-1), 4),
                                   ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
                                   ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
@@ -185,7 +186,7 @@ def gerar_pdf(dados, output_path):
         Paragraph('<b>Valores em Reais</b>', styles['Right'])
     ]], colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES])
     linha_natureza.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-                                        ('FONTSIZE', (0,0), (-1,-1), 10), ('ALIGN', (1,0), (1,0), 'RIGHT'),
+                                        ('FONTSIZE', (0,0), (-1,-1), 8), ('ALIGN', (1,0), (1,0), 'RIGHT'),
                                         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('LEFTPADDING', (0,0), (-1,-1), 4),
                                         ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
                                         ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
@@ -201,7 +202,7 @@ def gerar_pdf(dados, output_path):
     ]
     tabela_itens = Table(itens_rra, colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES])
     tabela_itens.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-                                      ('FONTSIZE', (0,0), (-1,-1), 10), ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+                                      ('FONTSIZE', (0,0), (-1,-1), 8), ('ALIGN', (1,0), (1,-1), 'RIGHT'),
                                       ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('LEFTPADDING', (0,0), (-1,-1), 4),
                                       ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
                                       ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
@@ -211,12 +212,12 @@ def gerar_pdf(dados, output_path):
     # Seção 7
     story.append(Table([[Paragraph('<b>7. INFORMAÇÕES COMPLEMENTARES</b>', styles['Normal'])]], colWidths=[LARGURA_UTIL], style=[
         ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-        ('FONTSIZE', (0,0), (-1,-1), 10), ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('FONTSIZE', (0,0), (-1,-1), 8), ('LEFTPADDING', (0,0), (-1,-1), 3),
         ('TOPPADDING', (0,0), (-1,-1), 2), ('BOTTOMPADDING', (0,0), (-1,-1), 2),
         ('GRID', (0,0), (-1,-1), 0.5, colors.black)]))
     info_table = Table([[Paragraph(info or 'Nada a declarar', styles['Normal'])]], colWidths=[LARGURA_UTIL])
     info_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-                                    ('FONTSIZE', (0,0), (-1,-1), 10), ('LEFTPADDING', (0,0), (-1,-1), 4),
+                                    ('FONTSIZE', (0,0), (-1,-1), 8), ('LEFTPADDING', (0,0), (-1,-1), 4),
                                     ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
                                     ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
     story.append(info_table)
