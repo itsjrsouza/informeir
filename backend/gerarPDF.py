@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gerarPDF.py
+gerarPDF.py v3
 Recebe JSON de um informe e gera o PDF via reportlab.
 Uso: python3 gerarPDF.py <dados.json> <saida.pdf>
 """
 
-import sys
-import json
+import sys, json
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -17,68 +16,47 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# Tentar registrar Tahoma (fallback para Helvetica se não existir)
 try:
     pdfmetrics.registerFont(TTFont('Tahoma', 'Tahoma.ttf'))
     FONT_NAME = 'Tahoma'
 except:
     FONT_NAME = 'Helvetica'
 
-# ---------- CONFIGURAÇÕES DE LAYOUT (proporções exatas do Figma) ----------
-LARGURA_UTIL = 197.5*mm   # 1268px no Figma
-
-# Seções 3, 4, 5 e linha "Natureza do Rendimento" (descrição + valor)
-# Proporção: 452px (texto) / 103px (valor)
-LARGURA_VALORES = LARGURA_UTIL * (103 / (452+103))   # ~36.7 mm
+# ---------- CONFIGURAÇÕES DE LAYOUT (Figma) ----------
+LARGURA_UTIL = 197.5*mm
+LARGURA_VALORES = LARGURA_UTIL * (103 / (452+103))
 LARGURA_DESCRICAO = LARGURA_UTIL - LARGURA_VALORES
-
-# Seção 1 e 2 (Nome Empresarial/Nome Completo e CNPJ/CPF)
-# Proporção: 556px (Nome) / 428px (CNPJ/CPF)
-LARGURA_NOME_EMPRESARIAL = LARGURA_UTIL * (556 / (556+428))   # ~111.6 mm
+LARGURA_NOME_EMPRESARIAL = LARGURA_UTIL * (556 / (556+428))
 LARGURA_CNPJ_CPF = LARGURA_UTIL - LARGURA_NOME_EMPRESARIAL
-
-# Seção 6 - Linha 6.1 (Número Processo / Quantidade meses / 0)
-# Proporção: 298px / 90px / 54px
-LARGURA_PROCESSO = LARGURA_UTIL * (298 / (298+90+54))   # ~133.1 mm
-LARGURA_MESES = LARGURA_UTIL * (90 / (298+90+54))       # ~40.3 mm
+LARGURA_PROCESSO = LARGURA_UTIL * (298 / (298+90+54))
+LARGURA_MESES = LARGURA_UTIL * (90 / (298+90+54))
 LARGURA_ZERO = LARGURA_UTIL - LARGURA_PROCESSO - LARGURA_MESES
-
-# Seção 8 (Nome / Data / Assinatura)
-# Proporção: 230px / 96px / 231px
-LARGURA_NOME_RESP = LARGURA_UTIL * (230 / (230+96+231))   # ~81.6 mm
-LARGURA_DATA = LARGURA_UTIL * (96 / (230+96+231))         # ~34.0 mm
+LARGURA_NOME_RESP = LARGURA_UTIL * (230 / (230+96+231))
+LARGURA_DATA = LARGURA_UTIL * (96 / (230+96+231))
 LARGURA_ASSINATURA = LARGURA_UTIL - LARGURA_NOME_RESP - LARGURA_DATA
-
-# Recuo esquerdo para os textos descritivos
 RECUO_ESQUERDO_TEXTO = 2*mm
 
 def fmt_brl(val):
-    if val is None or str(val).strip() == "":
-        return "0,00"
+    if val is None or str(val).strip() == "": return "0,00"
     s = str(val).strip().replace("R$", "").strip()
-    if "," in s and "." in s:
-        s = s.replace(".", "").replace(",", ".")
-    elif "," in s:
-        s = s.replace(",", ".")
+    if "," in s and "." in s: s = s.replace(".", "").replace(",", ".")
+    elif "," in s: s = s.replace(",", ".")
     try:
         f = float(s)
         inteiro, decimal = f"{f:.2f}".split('.')
         inteiro_fmt = ""
         for i, d in enumerate(reversed(inteiro)):
-            if i > 0 and i % 3 == 0:
-                inteiro_fmt = "." + inteiro_fmt
+            if i > 0 and i % 3 == 0: inteiro_fmt = "." + inteiro_fmt
             inteiro_fmt = d + inteiro_fmt
         return f"{inteiro_fmt},{decimal}"
-    except:
-        return "0,00"
+    except: return "0,00"
 
 def fmt_cnpj(v):
     d = ''.join(c for c in str(v or '') if c.isdigit())
-    return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}" if len(d) == 14 else v
-
+    return f"{d[:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:]}" if len(d)==14 else v
 def fmt_cpf(v):
     d = ''.join(c for c in str(v or '') if c.isdigit())
-    return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}" if len(d) == 11 else v
+    return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}" if len(d)==11 else v
 
 def gerar_pdf(dados, output_path):
     exercicio = dados.get('exercicio', 2026)
@@ -90,37 +68,27 @@ def gerar_pdf(dados, output_path):
     info = dados.get('informacoesComplementares', '')
 
     doc = SimpleDocTemplate(output_path, pagesize=A4,
-                           leftMargin=5.0*mm,
-                           rightMargin=7.5*mm,
-                           topMargin=0*mm,
-                           bottomMargin=4.9*mm)
+                           leftMargin=5.0*mm, rightMargin=7.5*mm,
+                           topMargin=0*mm, bottomMargin=4.9*mm)
 
     styles = getSampleStyleSheet()
     styles['Normal'].fontName = FONT_NAME
     styles['Normal'].fontSize = 10
     styles['Normal'].leading = 12
-
-    styles.add(ParagraphStyle(name='Left', parent=styles['Normal'],
-                              alignment=TA_LEFT,
-                              leftIndent=RECUO_ESQUERDO_TEXTO,
-                              rightIndent=RECUO_ESQUERDO_TEXTO))
+    styles.add(ParagraphStyle(name='Left', parent=styles['Normal'], alignment=TA_LEFT,
+                              leftIndent=RECUO_ESQUERDO_TEXTO, rightIndent=RECUO_ESQUERDO_TEXTO))
     styles.add(ParagraphStyle(name='Right', parent=styles['Normal'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
     styles.add(ParagraphStyle(name='Bold', parent=styles['Normal'], fontName=FONT_NAME, bold=True))
     styles.add(ParagraphStyle(name='Small', parent=styles['Normal'], fontSize=8))
 
     story = []
-
-    # Cabeçalho
     story.append(Paragraph('<b>MINISTÉRIO DA FAZENDA</b>', styles['Center']))
     story.append(Paragraph('<b>SECRETARIA DA RECEITA FEDERAL DO BRASIL</b>', styles['Center']))
     story.append(Paragraph('<b>IMPOSTO SOBRE A RENDA DA PESSOA FÍSICA</b>', styles['Center']))
     story.append(Spacer(1, 3*mm))
-
-    data_periodo = [[
-        Paragraph(f'<b>Exercício de {exercicio}</b>', styles['Left']),
-        Paragraph(f'<b>Ano-Calendário {ano}</b>', styles['Right'])
-    ]]
+    data_periodo = [[Paragraph(f'<b>Exercício de {exercicio}</b>', styles['Left']),
+                     Paragraph(f'<b>Ano-Calendário {ano}</b>', styles['Right'])]]
     t_periodo = Table(data_periodo, colWidths=[LARGURA_UTIL/2, LARGURA_UTIL/2])
     t_periodo.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
     story.append(t_periodo)
@@ -130,27 +98,16 @@ def gerar_pdf(dados, output_path):
 
     def add_section(title, data, col_widths, header_style=None):
         story.append(Table([[title]], colWidths=[sum(col_widths)], style=[
-            ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey),
-            ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-            ('FONTSIZE', (0,0), (-1,-1), 10),
-            ('LEFTPADDING', (0,0), (-1,-1), 3),
-            ('TOPPADDING', (0,0), (-1,-1), 2),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.black)
-        ]))
+            ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+            ('FONTSIZE', (0,0), (-1,-1), 10), ('LEFTPADDING', (0,0), (-1,-1), 3),
+            ('TOPPADDING', (0,0), (-1,-1), 2), ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black)]))
         t = Table(data, colWidths=col_widths)
-        style = [
-            ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-            ('FONTSIZE', (0,0), (-1,-1), 10),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('LEFTPADDING', (0,0), (-1,-1), 4),
-            ('RIGHTPADDING', (0,0), (-1,-1), 4),
-            ('TOPPADDING', (0,0), (-1,-1), 3),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-        ]
-        if header_style:
-            style.extend(header_style)
+        style = [('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10),
+                 ('GRID', (0,0), (-1,-1), 0.5, colors.black), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                 ('LEFTPADDING', (0,0), (-1,-1), 4), ('RIGHTPADDING', (0,0), (-1,-1), 4),
+                 ('TOPPADDING', (0,0), (-1,-1), 3), ('BOTTOMPADDING', (0,0), (-1,-1), 3)]
+        if header_style: style.extend(header_style)
         t.setStyle(TableStyle(style))
         story.append(t)
         story.append(Spacer(1, 2*mm))
@@ -161,18 +118,15 @@ def gerar_pdf(dados, output_path):
                  [fp.get('razaoSocial','') or ' ', fmt_cnpj(fp.get('cnpj','')) or ' ']],
                 [LARGURA_NOME_EMPRESARIAL, LARGURA_CNPJ_CPF],
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
-
     # Seção 2
     add_section(Paragraph('<b>2. PESSOA FÍSICA BENEFICIÁRIA DOS RENDIMENTOS</b>', styles['Normal']),
                 [[Paragraph('<b>CPF</b>', styles['Normal']), Paragraph('<b>Nome Completo</b>', styles['Normal'])],
                  [fmt_cpf(bn.get('cpf','')) or ' ', bn.get('nome','') or ' ']],
                 [LARGURA_CNPJ_CPF, LARGURA_NOME_EMPRESARIAL],
                 [('FONTNAME', (0,0), (-1,0), FONT_NAME), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#EEEEEE'))])
-
     nat_table = Table([['Natureza do Rendimento: Assalariado']], colWidths=[LARGURA_UTIL])
     nat_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black),
-                                   ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-                                   ('FONTSIZE', (0,0), (-1,-1), 10)]))
+                                   ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10)]))
     story.append(nat_table)
     story.append(Spacer(1, 2*mm))
 
@@ -185,10 +139,10 @@ def gerar_pdf(dados, output_path):
                  [Paragraph('05 - Imposto sobre a renda retido na fonte', styles['Left']), Paragraph(fmt_brl(rd.get('irrf')), styles['Right'])]],
                 [LARGURA_DESCRICAO, LARGURA_VALORES])
 
-    # Seção 4
+    # Seção 4 (índices corrigidos: 01 e 02)
     add_section(Paragraph('<b>4. RENDIMENTOS ISENTOS E NÃO TRIBUTÁVEIS</b>', styles['Normal']),
                 [[Paragraph('01 - Parcela Isenta dos Proventos de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta65')), styles['Right'])],
-                 [Paragraph('01 - Parcela Isenta do 13º de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta13')), styles['Right'])],
+                 [Paragraph('02 - Parcela Isenta do 13º de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta13')), styles['Right'])],
                  [Paragraph('03 - Diárias e Ajudas de Custo', styles['Left']), Paragraph(fmt_brl(rd.get('diariasAjudas')), styles['Right'])],
                  [Paragraph('04 - Pensão, Prov.de Aposentadoria ou Reforma por Moléstia Grave e aposentadoria ou Reforma por Acidente em Serviço', styles['Left']), Paragraph(fmt_brl(rd.get('molestiaGrave')), styles['Right'])],
                  [Paragraph('05 - Lucro e Dividendo Apurado a partir de 1996 pago por PJ (Lucro Real, Presumido ou Arbitrado)', styles['Left']), Paragraph(fmt_brl(rd.get('lucrosDividendos')), styles['Right'])],
@@ -205,62 +159,34 @@ def gerar_pdf(dados, output_path):
                 [LARGURA_DESCRICAO, LARGURA_VALORES])
 
     # Seção 6 - RRA
-    titulo_secao6 = Table(
-        [[Paragraph('<b>6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)</b>', styles['Normal'])]],
-        colWidths=[LARGURA_UTIL]
-    )
-    titulo_secao6.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('LEFTPADDING', (0, 0), (-1, -1), 3),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-    ]))
+    titulo_secao6 = Table([[Paragraph('<b>6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)</b>', styles['Normal'])]], colWidths=[LARGURA_UTIL])
+    titulo_secao6.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.lightgrey), ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+                                       ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10),
+                                       ('LEFTPADDING', (0,0), (-1,-1), 3), ('TOPPADDING', (0,0), (-1,-1), 2),
+                                       ('BOTTOMPADDING', (0,0), (-1,-1), 2)]))
     story.append(titulo_secao6)
 
-    proc_val = rd.get('rraNumProcesso', '')
-    meses_val = rd.get('rraMeses', '')
-    linha_61 = Table(
-        [[
-            Paragraph('<b>6.1 - Número do Processo:</b>', styles['Left']),
-            Paragraph(f'<b>Quantidade de meses:</b> {meses_val}', styles['Left']),
-            '0'
-        ]],
-        colWidths=[LARGURA_PROCESSO, LARGURA_MESES, LARGURA_ZERO]
-    )
-    linha_61.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('ALIGN', (2, 0), (2, 0), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-    ]))
+    linha_61 = Table([[
+        Paragraph('<b>6.1 - Número do Processo:</b>', styles['Left']),
+        Paragraph(f'<b>Quantidade de meses:</b> {rd.get("rraMeses","")}', styles['Left']),
+        '0'
+    ]], colWidths=[LARGURA_PROCESSO, LARGURA_MESES, LARGURA_ZERO])
+    linha_61.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+                                  ('FONTSIZE', (0,0), (-1,-1), 10), ('ALIGN', (2,0), (2,0), 'CENTER'),
+                                  ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('LEFTPADDING', (0,0), (-1,-1), 4),
+                                  ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
+                                  ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
     story.append(linha_61)
 
-    linha_natureza = Table(
-        [[
-            Paragraph('<b>Natureza do Rendimento:</b>', styles['Left']),
-            Paragraph('<b>Valores em Reais</b>', styles['Right'])
-        ]],
-        colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES]
-    )
-    linha_natureza.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-    ]))
+    linha_natureza = Table([[
+        Paragraph('<b>Natureza do Rendimento:</b>', styles['Left']),
+        Paragraph('<b>Valores em Reais</b>', styles['Right'])
+    ]], colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES])
+    linha_natureza.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+                                        ('FONTSIZE', (0,0), (-1,-1), 10), ('ALIGN', (1,0), (1,0), 'RIGHT'),
+                                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('LEFTPADDING', (0,0), (-1,-1), 4),
+                                        ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
+                                        ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
     story.append(linha_natureza)
 
     itens_rra = [
@@ -272,44 +198,29 @@ def gerar_pdf(dados, output_path):
         [Paragraph('06 - Rendimentos Isentos de Pensão, Proventos de Aposentadoria ou Reforma por Moléstia Grave ou Aposentadoria ou Reforma por Acidente em Serviço', styles['Left']), Paragraph(fmt_brl(rd.get('rraIsentos')), styles['Right'])]
     ]
     tabela_itens = Table(itens_rra, colWidths=[LARGURA_DESCRICAO, LARGURA_VALORES])
-    tabela_itens.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-    ]))
+    tabela_itens.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+                                      ('FONTSIZE', (0,0), (-1,-1), 10), ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+                                      ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('LEFTPADDING', (0,0), (-1,-1), 4),
+                                      ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
+                                      ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
     story.append(tabela_itens)
     story.append(Spacer(1, 2*mm))
 
     # Seção 7
     story.append(Table([[Paragraph('<b>7. INFORMAÇÕES COMPLEMENTARES</b>', styles['Normal'])]], colWidths=[LARGURA_UTIL], style=[
-        ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey),
-        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('LEFTPADDING', (0,0), (-1,-1), 3),
-        ('TOPPADDING', (0,0), (-1,-1), 2),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black)
-    ]))
+        ('BACKGROUND', (0,0), (-1,-1), colors.lightgrey), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+        ('FONTSIZE', (0,0), (-1,-1), 10), ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('TOPPADDING', (0,0), (-1,-1), 2), ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black)]))
     info_table = Table([[Paragraph(info or 'Nada a declarar', styles['Normal'])]], colWidths=[LARGURA_UTIL])
-    info_table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('LEFTPADDING', (0,0), (-1,-1), 4),
-        ('RIGHTPADDING', (0,0), (-1,-1), 4),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-    ]))
+    info_table.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.black), ('FONTNAME', (0,0), (-1,-1), FONT_NAME),
+                                    ('FONTSIZE', (0,0), (-1,-1), 10), ('LEFTPADDING', (0,0), (-1,-1), 4),
+                                    ('RIGHTPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 3),
+                                    ('BOTTOMPADDING', (0,0), (-1,-1), 3)]))
     story.append(info_table)
     story.append(Spacer(1, 2*mm))
 
-    # Seção 8 (ORDEM CORRIGIDA)
+    # Seção 8 – ORDEM CORRETA: Nome, Data, Assinatura
     add_section(Paragraph('<b>8. RESPONSÁVEL PELAS INFORMAÇÕES</b>', styles['Normal']),
                 [[Paragraph('<b>Nome</b>', styles['Normal']),
                   Paragraph('<b>Data</b>', styles['Normal']),
