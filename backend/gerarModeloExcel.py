@@ -1,131 +1,99 @@
 #!/usr/bin/env python3
-import sys, json, re, os, pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+import sys
 
-COL_MAP = {
-    "EXERCICIO": ("exercicio", "meta"),
-    "ANO_CALENDARIO": ("anoCalendario", "meta"),
-    "CNPJ_EMPRESA": ("cnpj", "fontePagadora"),
-    "RAZAO_SOCIAL": ("razaoSocial", "fontePagadora"),
-    "NOME_BENEFICIARIO": ("nome", "beneficiario"),
-    "CPF_BENEFICIARIO": ("cpf", "beneficiario"),
-    "TRIBUTAVEIS": ("tributaveis", "rendimentos"),
-    "INSS": ("inss", "rendimentos"),
-    "PREV_COMPLEMENTAR": ("prevComplementar", "rendimentos"),
-    "PENSAO_ALIMENTICIA": ("pensaoAlimenticia", "rendimentos"),
-    "IRRF": ("irrf", "rendimentos"),
-    "PARCELA_ISENTA65": ("parcelaIsenta65", "rendimentos"),
-    "PARCELA_ISENTA13": ("parcelaIsenta13", "rendimentos"),
-    "DIARIAS_AJUDAS": ("diariasAjudas", "rendimentos"),
-    "MOLESTIA_GRAVE": ("molestiaGrave", "rendimentos"),
-    "LUCROS_DIVIDENDOS": ("lucrosDividendos", "rendimentos"),
-    "PROLABORE_ISENTO": ("prolaboreIsento", "rendimentos"),
-    "INDENIZACOES": ("indenizacoes", "rendimentos"),
-    "OUTROS_ISENTOS": ("outrosIsentos", "rendimentos"),
-    "TREZE_RENDIMENTOS": ("trezeRendimentos", "rendimentos"),
-    "TREZE_IRRF": ("trezeIrrf", "rendimentos"),
-    "OUTROS_TRIB_EXCL": ("outrosTribExclusiva", "rendimentos"),
-    "RRA_NUM_PROCESSO": ("rraNumProcesso", "rendimentos"),
-    "RRA_MESES": ("rraMeses", "rendimentos"),
-    "RRA_TRIBUTAVEIS": ("rraTributaveis", "rendimentos"),
-    "RRA_DESP_JUDICIAIS": ("rraDespesasJudiciais", "rendimentos"),
-    "RRA_INSS": ("rraInss", "rendimentos"),
-    "RRA_PENSAO": ("rraPensao", "rendimentos"),
-    "RRA_IRRF": ("rraIrrf", "rendimentos"),
-    "RRA_ISENTOS": ("rraIsentos", "rendimentos"),
-    "INFO_COMPLEMENTARES": ("informacoesComplementares", "info"),
-    "RESP_NOME": ("nome", "responsavel"),
-    "RESP_DATA": ("data", "responsavel"),
-    "RESP_ASSINATURA": ("assinatura", "responsavel"),
-}
+COLUNAS = [
+    ("EXERCICIO",                   "Exercício (ano de entrega)",            12),
+    ("ANO_CALENDARIO",              "Ano-Calendário",                        12),
+    ("CNPJ_EMPRESA",                "CNPJ da Empresa",                       20),
+    ("RAZAO_SOCIAL",                "Razão Social / Nome Empresarial",       35),
+    ("NOME_BENEFICIARIO",           "Nome Completo do Beneficiário",         35),
+    ("CPF_BENEFICIARIO",            "CPF do Beneficiário",                   16),
+    ("TRIBUTAVEIS",                 "01-Total Rendimentos Tributáveis",      22),
+    ("INSS",                        "02-Contribuição Previdenciária",        20),
+    ("PREV_COMPLEMENTAR",           "03-Previdência Complementar/FAPI",      20),
+    ("PENSAO_ALIMENTICIA",          "04-Pensão Alimentícia",                 20),
+    ("IRRF",                        "05-IRRF",                               16),
+    ("PARCELA_ISENTA65",            "01-Parcela isenta aposentadoria, pensão e reforma (65 anos ou mais)",                 20),
+    ("PARCELA_13",                  "02-Parcela isenta do 13º de aposentadoria, pensão e reforma (65 anos ou mais)",                 20),
+    ("DIARIAS_AJUDAS",              "02-Diárias e Ajudas de Custo",          20),
+    ("MOLESTIA_GRAVE",              "03-Pensão/aposentadoria/reforma por moléstia grave ou acidente em serviço",            20),
+    ("LUCROS_DIVIDENDOS",           "04-Lucros e Dividendos",                22),
+    ("LUCROS_SIMPLES_NACIONAL",     "05-Valores pagos a titular ou sócio de ME/EPP (exceto pró-labore, aluguéis e serviços)",           22),
+    ("INDENIZACOES",                "06-Indenizações/PDV",                   20),
+    ("OUTROS_ISENTOS",              "07-Outros Rendimentos Isentos",         22),
+    ("TREZE_RENDIMENTOS",           "01-13º Salário",                        20),
+    ("TREZE_IRRF",                  "02-IRRF sobre 13º",                     20),
+    ("OUTROS_TRIB_EXCL",            "03-Outros Trib. Exclusiva",             20),
+    ("RRA_NUM_PROCESSO",            "RRA - Número do Processo",              25),
+    ("RRA_MESES",                   "RRA - Quantidade de Meses",             15),
+    ("NATUREZA_RENDIMENTO",         "Natureza do Rendimento",                25),
+    ("RRA_TRIBUTAVEIS",             "RRA - Total Rendimentos Tributáveis",   22),
+    ("RRA_DESP_JUDICIAIS",          "RRA - Despesas Judiciais",              20),
+    ("RRA_INSS",                    "RRA - Contribuição Previdenciária",     20),
+    ("RRA_PENSAO",                  "RRA - Pensão Alimentícia",              20),
+    ("RRA_IRRF",                    "RRA - IRRF",                            16),
+    ("RRA_ISENTOS",                 "RRA - Rendimentos Isentos",             22),
+    ("INFO_COMPLEMENTARES",         "Informações Complementares",            40),
+    ("RESP_NOME",                   "Responsável - Nome",                    30),
+    ("RESP_DATA",                   "Responsável - Data",                    15),
+    ("RESP_ASSINATURA",             "Responsável - Assinatura",              30),
+]
 
-PALAVRAS_ROTULO = {'ano-calendário', 'ano calendário', 'ano', 'exercício', 'nome completo', 'cnpj', 'cpf', 'razão social'}
+EXEMPLOS = [
+    [2026, 2025, "12.345.678/0001-95", "EMPRESA ALPHA LTDA", "JOÃO DA SILVA SOUZA", "123.456.789-01",
+     84000.00, 7786.00, 0.00, 0.00, 4200.00,
+     0.00, 0.00, 0.00, 0.00, 0.00, 120000.00, 0.00, 0.00,
+     7000.00, 0.00, 0.00,
+     "", "", "", 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+     "Nada a declarar", "Contador XYZ", "28/02/2026", "Isento conforme IN RFB 1.215/2011"],
+]
 
-def limpar_numero(val):
-    if val is None or (isinstance(val, float) and pd.isna(val)): return "0,00"
-    s = re.sub(r'[R$\s]', '', str(val).strip())
-    if s in ('', ',', '.', '-', '0'): return "0,00"
-    if ',' in s: s = s.replace('.', '').replace(',', '.') if '.' in s else s.replace(',', '.')
-    try:
-        f = round(float(s), 2)
-        inteiro, decimal = f"{f:.2f}".split('.')
-        inteiro_fmt = ""
-        for i, d in enumerate(reversed(inteiro)):
-            if i > 0 and i % 3 == 0: inteiro_fmt = "." + inteiro_fmt
-            inteiro_fmt = d + inteiro_fmt
-        return f"{inteiro_fmt},{decimal}"
-    except: return "0,00"
+AZUL_ESCURO, AZUL_HEADER, AZUL_CLARO, VERDE_EX, BRANCO, CINZA = "1F3864", "2563A8", "D9E1F2", "E2EFDA", "FFFFFF", "F5F5F5"
+def borda(cor="CCCCCC"): s=Side(style="thin", color=cor); return Border(left=s, right=s, top=s, bottom=s)
 
-def limpar_cnpj(v): return re.sub(r'\D', '', str(v or ""))
-def limpar_cpf(v): return re.sub(r'\D', '', str(v or ""))
+def gerar(output_path):
+    wb = Workbook()
+    ws = wb.active; ws.title = "MODELO"
+    ws.merge_cells("A1:AM1"); ws["A1"].value = "IMPORTAÇÃO EM LOTE — INFORME DE RENDIMENTOS"
+    ws["A1"].font = Font(bold=True, size=14, color=BRANCO); ws["A1"].fill = PatternFill("solid", fgColor=AZUL_ESCURO)
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 30
+    ws.merge_cells("A2:AM2"); ws["A2"].value = "Preencha uma linha por beneficiário. Não altere os nomes das colunas."
+    ws["A2"].font = Font(italic=True, size=10, color="444444"); ws["A2"].fill = PatternFill("solid", fgColor=AZUL_CLARO)
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 18
 
-def linha_ignoravel(row):
-    if all(pd.isna(v) or str(v).strip() == '' for v in row): return True
-    primeira_col = None
-    if 'ANO_CALENDARIO' in row.index: primeira_col = str(row['ANO_CALENDARIO']).strip().lower()
-    elif 'EXERCICIO' in row.index: primeira_col = str(row['EXERCICIO']).strip().lower()
-    if primeira_col and any(p in primeira_col for p in PALAVRAS_ROTULO): return True
-    if 'CPF_BENEFICIARIO' in row.index:
-        cpf_val = str(row['CPF_BENEFICIARIO']).strip()
-        if cpf_val and not re.search(r'\d', cpf_val): return True
-    return False
+    for col_idx, (campo, label, largura) in enumerate(COLUNAS, start=1):
+        col_letra = get_column_letter(col_idx)
+        c = ws.cell(row=3, column=col_idx, value=campo); c.font = Font(bold=True, size=10, color=BRANCO)
+        c.fill = PatternFill("solid", fgColor=AZUL_HEADER); c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = borda("1F3864")
+        ws.column_dimensions[col_letra].width = largura
+    ws.row_dimensions[3].height = 22
 
-def parse(caminho):
-    if not os.path.exists(caminho): return {"erro": "Arquivo não encontrado"}
-    if os.path.getsize(caminho) == 0: return {"erro": "Arquivo vazio"}
-    try: df = pd.read_excel(caminho, dtype=str, header=None)
-    except Exception as e: return {"erro": f"Erro ao ler arquivo: {e}"}
-    header_row = None
-    for idx, row in df.iterrows():
-        if 'ANO_CALENDARIO' in row.values: header_row = idx; break
-    if header_row is None: return {"erro": "Coluna ANO_CALENDARIO não encontrada"}
-    df.columns = df.iloc[header_row]
-    df = df.iloc[header_row+1:].reset_index(drop=True).dropna(how='all')
-    beneficiarios, erros = [], []
-    for idx, row in df.iterrows():
-        if linha_ignoravel(row): continue
-        beneficiario = {"fontePagadora": {}, "beneficiario": {}, "rendimentos": {}, "responsavel": {}}
-        info = ""
-        erros_linha = []
-        for col_nome, (chave, secao) in COL_MAP.items():
-            if col_nome not in df.columns: continue
-            val = str(row[col_nome]).strip() if not pd.isna(row[col_nome]) else ""
-            if secao == "meta":
-                try: beneficiario[chave] = int(float(val)) if val else None
-                except: beneficiario[chave] = None
-            elif secao == "fontePagadora":
-                beneficiario["fontePagadora"][chave] = limpar_cnpj(val) if col_nome == "CNPJ_EMPRESA" else val.upper()
-            elif secao == "beneficiario":
-                beneficiario["beneficiario"][chave] = limpar_cpf(val) if col_nome == "CPF_BENEFICIARIO" else val.upper()
-            elif secao == "rendimentos":
-                if chave.startswith('rra') and chave not in ['rraTributaveis','rraDespesasJudiciais','rraInss','rraPensao','rraIrrf','rraIsentos']:
-                    beneficiario["rendimentos"][chave] = val
-                else:
-                    beneficiario["rendimentos"][chave] = limpar_numero(val)
-            elif secao == "info":
-                info = val
-            elif secao == "responsavel":
-                beneficiario["responsavel"][chave] = val
+    for row_idx, exemplo in enumerate(EXEMPLOS, start=4):
+        for col_idx, valor in enumerate(exemplo, start=1):
+            c = ws.cell(row=row_idx, column=col_idx, value=valor); c.font = Font(size=10, color="1a5276")
+            c.fill = PatternFill("solid", fgColor=VERDE_EX); c.border = borda()
+            c.alignment = Alignment(horizontal="center", vertical="center")
+            if 7 <= col_idx <= 30: c.number_format = '#,##0.00'
+        ws.row_dimensions[row_idx].height = 18
 
-        beneficiario["informacoesComplementares"] = info
-        if not beneficiario.get("exercicio") and beneficiario.get("anoCalendario"): beneficiario["exercicio"] = beneficiario["anoCalendario"] + 1
-        if not beneficiario["fontePagadora"].get("cnpj"): erros_linha.append("CNPJ_EMPRESA vazio")
-        if not beneficiario["fontePagadora"].get("razaoSocial"): erros_linha.append("RAZAO_SOCIAL vazia")
-        if not beneficiario["beneficiario"].get("nome"): erros_linha.append("NOME_BENEFICIARIO vazio")
-        if not beneficiario["beneficiario"].get("cpf"): erros_linha.append("CPF_BENEFICIARIO vazio")
-        if not beneficiario.get("anoCalendario"): erros_linha.append("ANO_CALENDARIO inválido")
-        if erros_linha:
-            erros.append({"linha": idx + header_row + 2, "erros": erros_linha, "nome": beneficiario["beneficiario"].get("nome", "?")})
-            continue
-        beneficiarios.append(beneficiario)
+    for row_idx in range(5, 105):
+        for col_idx in range(1, len(COLUNAS)+1):
+            c = ws.cell(row=row_idx, column=col_idx); c.border = borda()
+            c.fill = PatternFill("solid", fgColor=BRANCO if row_idx % 2 == 0 else CINZA)
+            c.alignment = Alignment(horizontal="center", vertical="center")
+            if 7 <= col_idx <= 30: c.number_format = '#,##0.00'
+        ws.row_dimensions[row_idx].height = 18
 
-    # Log para diagnóstico
-    if beneficiarios:
-        print("===== PRIMEIRO REGISTRO PARSEADO =====")
-        print(json.dumps(beneficiarios[0], indent=2, ensure_ascii=False))
-        print("======================================")
-
-    return {"total": len(beneficiarios), "registros": beneficiarios, "validos": len(beneficiarios), "invalidos": len(erros), "erros": erros}
+    ws.freeze_panes = "A4"
+    wb.save(output_path)
+    print(f"✅ Modelo Excel gerado: {output_path}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2: print(json.dumps({"erro": "Informe o caminho"})); sys.exit(1)
-    print(json.dumps(parse(sys.argv[1]), ensure_ascii=False, indent=2))
+    out = sys.argv[1] if len(sys.argv) > 1 else "modelo.xlsx"
+    gerar(out)
