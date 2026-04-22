@@ -906,7 +906,7 @@ textarea {
    TABELA DE PRÉ-VISUALIZAÇÃO (LOTE)
    ========================================================================== */
 .preview-table-wrap {
-  overflow-x: auto;
+  overflow-x: visible;       /* remove barra de rolagem */
   margin-top: 12px;
 }
 
@@ -914,16 +914,16 @@ textarea {
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
-  table-layout: auto;
+  table-layout: fixed;      /* força larguras percentuais */
+  word-break: break-word;
 }
 
 .preview-table th,
 .preview-table td {
-  padding: 5px 8px;
+  padding: 5px 4px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
-  white-space: normal;
-  word-break: break-word;
+  white-space: normal;      /* permite quebra de linha */
 }
 
 .preview-table th {
@@ -932,41 +932,31 @@ textarea {
   color: var(--muted);
   text-align: left;
   border-bottom: 2px solid var(--border);
-  white-space: nowrap;
   font-size: 11px;
+  white-space: normal;
 }
 
 .preview-table tr:hover td {
   background: #f8faff;
 }
 
-.preview-table td:last-child,
-.preview-table td:nth-last-child(2) {
-  white-space: nowrap;
-  width: 1%;
+/* Larguras percentuais – total 100% */
+.preview-table th:nth-child(1) { width: 5%; }   /* checkbox */
+.preview-table th:nth-child(2) { width: 5%; }   /* # */
+.preview-table th:nth-child(3) { width: 10%; }  /* Exercício */
+.preview-table th:nth-child(4) { width: 35%; }  /* Empresa / CNPJ */
+.preview-table th:nth-child(5) { width: 35%; }  /* Beneficiário / CPF */
+.preview-table th:nth-child(6) { width: 5%; }   /* PDF */
+.preview-table th:nth-child(7) { width: 5%; }   /* Remover */
+
+/* Ações centralizadas */
+.preview-table td:nth-child(6),
+.preview-table td:nth-child(7) {
   text-align: center;
-}
-
-.preview-table th:nth-child(2),
-.preview-table td:nth-child(2),
-.preview-table th:nth-child(3),
-.preview-table td:nth-child(3) {
-  white-space: nowrap;
-  width: 1%;
-}
-
-.preview-table th:nth-child(1),
-.preview-table td:nth-child(1) {
-  width: 1%;
   white-space: nowrap;
 }
 
-.preview-table td:nth-child(4),
-.preview-table td:nth-child(5) {
-  white-space: normal;
-  word-break: break-word;
-}
-
+/* Estilos de texto */
 .td-primary {
   font-weight: 600;
   font-size: 11px;
