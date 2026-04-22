@@ -139,7 +139,7 @@ def gerar_pdf(dados, output_path):
                  [Paragraph('05 - Imposto sobre a renda retido na fonte', styles['Left']), Paragraph(fmt_brl(rd.get('irrf')), styles['Right'])]],
                 [LARGURA_DESCRICAO, LARGURA_VALORES])
 
-    # Seção 4 (índices corrigidos: 01 e 02)
+    # Seção 4
     add_section(Paragraph('<b>4. RENDIMENTOS ISENTOS E NÃO TRIBUTÁVEIS</b>', styles['Normal']),
                 [[Paragraph('01 - Parcela Isenta dos Proventos de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta65')), styles['Right'])],
                  [Paragraph('02 - Parcela Isenta do 13º de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta13')), styles['Right'])],
@@ -158,7 +158,7 @@ def gerar_pdf(dados, output_path):
                  [Paragraph('03 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosTribExclusiva')), styles['Right'])]],
                 [LARGURA_DESCRICAO, LARGURA_VALORES])
 
-    # Seção 6 - RRA
+    # Seção 6
     titulo_secao6 = Table([[Paragraph('<b>6. RENDIMENTOS RECEBIDOS ACUMULADAMENTE ART. 12-A DA LEI No. 7.713, DE 1988 (Sujeito à Tributação Exclusiva)</b>', styles['Normal'])]], colWidths=[LARGURA_UTIL])
     titulo_secao6.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.lightgrey), ('GRID', (0,0), (-1,-1), 0.5, colors.black),
                                        ('FONTNAME', (0,0), (-1,-1), FONT_NAME), ('FONTSIZE', (0,0), (-1,-1), 10),
@@ -220,7 +220,7 @@ def gerar_pdf(dados, output_path):
     story.append(info_table)
     story.append(Spacer(1, 2*mm))
 
-    # Seção 8 – ORDEM CORRETA: Nome, Data, Assinatura
+    # Seção 8
     add_section(Paragraph('<b>8. RESPONSÁVEL PELAS INFORMAÇÕES</b>', styles['Normal']),
                 [[Paragraph('<b>Nome</b>', styles['Normal']),
                   Paragraph('<b>Data</b>', styles['Normal']),
