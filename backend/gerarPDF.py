@@ -155,12 +155,13 @@ def gerar_pdf(dados, output_path):
 # Seção 4
     add_section(Paragraph('<b>4. RENDIMENTOS ISENTOS E NÃO TRIBUTÁVEIS</b>', styles['Normal']),
             [[Paragraph('01 - Parcela Isenta dos Proventos de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get('parcelaIsenta65')), styles['Right'])],
-             [Paragraph('02 - Diárias e Ajudas de Custo', styles['Left']), Paragraph(fmt_brl(rd.get('diariasAjudas')), styles['Right'])],
-             [Paragraph('03 - Pensão, Prov.de Aposentadoria ou Reforma por Moléstia Grave e aposentadoria ou Reforma por Acidente em Serviço', styles['Left']), Paragraph(fmt_brl(rd.get('molestiaGrave')), styles['Right'])],
-             [Paragraph('04 - Lucro e Dividendo Apurado a partir de 1996 pago por PJ (Lucro Real, Presumido ou Arbitrado)', styles['Left']), Paragraph(fmt_brl(rd.get('lucrosDividendos')), styles['Right'])],
-             [Paragraph('05 - Vlr. Pago ao Titular ou Sócio da Microempresa ou Empr.de Pequeno Porte, exceto Pro-labore, aluguéis ou Serv.Prest.', styles['Left']), Paragraph(fmt_brl(rd.get('prolaboreIsento')), styles['Right'])],
-             [Paragraph('06 - Indenizações por Rescisão de Contrato de Trabalho, inclusive a título de PDV e por Acidente de Trabalho', styles['Left']), Paragraph(fmt_brl(rd.get('indenizacoes')), styles['Right'])],
-             [Paragraph('07 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosIsentos')), styles['Right'])]],
+            [Paragraph('01 - Parcela Isenta do 13º de Aposentadoria, Reserva Remunerada, Reforma e Pensão (65 anos ou mais)', styles['Left']), Paragraph(fmt_brl(rd.get      ('parcelaIsenta13')), styles['Right'])],
+             [Paragraph('03 - Diárias e Ajudas de Custo', styles['Left']), Paragraph(fmt_brl(rd.get('diariasAjudas')), styles['Right'])],
+             [Paragraph('04 - Pensão, Prov.de Aposentadoria ou Reforma por Moléstia Grave e aposentadoria ou Reforma por Acidente em Serviço', styles['Left']), Paragraph(fmt_brl(rd.get('molestiaGrave')), styles['Right'])],
+             [Paragraph('05 - Lucro e Dividendo Apurado a partir de 1996 pago por PJ (Lucro Real, Presumido ou Arbitrado)', styles['Left']), Paragraph(fmt_brl(rd.get('lucrosDividendos')), styles['Right'])],
+             [Paragraph('06 - Vlr. Pago ao Titular ou Sócio da Microempresa ou Empr.de Pequeno Porte, exceto Pro-labore, aluguéis ou Serv.Prest.', styles['Left']), Paragraph(fmt_brl(rd.get('prolaboreIsento')), styles['Right'])],
+             [Paragraph('07 - Indenizações por Rescisão de Contrato de Trabalho, inclusive a título de PDV e por Acidente de Trabalho', styles['Left']), Paragraph(fmt_brl(rd.get('indenizacoes')), styles['Right'])],
+             [Paragraph('08 - Outros', styles['Left']), Paragraph(fmt_brl(rd.get('outrosIsentos')), styles['Right'])]],
             [130*mm, 40*mm])
 
 # Seção 5

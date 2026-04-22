@@ -14,6 +14,7 @@ COL_MAP = {
     "PENSAO_ALIMENTICIA": ("pensaoAlimenticia", "rendimentos"),
     "IRRF": ("irrf", "rendimentos"),
     "PARCELA_ISENTA65": ("parcelaIsenta65", "rendimentos"),
+    "PARCELA_ISENTA13": ("parcelaIsenta13", "rendimentos"),
     "DIARIAS_AJUDAS": ("diariasAjudas", "rendimentos"),
     "MOLESTIA_GRAVE": ("molestiaGrave", "rendimentos"),
     "LUCROS_DIVIDENDOS": ("lucrosDividendos", "rendimentos"),
