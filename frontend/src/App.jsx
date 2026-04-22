@@ -944,8 +944,8 @@ textarea {
 .preview-table th:nth-child(1) { width: 5%; }   /* checkbox */
 .preview-table th:nth-child(2) { width: 5%; }   /* # */
 .preview-table th:nth-child(3) { width: 10%; }  /* Exercício */
-.preview-table th:nth-child(4) { width: 35%; }  /* Empresa / CNPJ */
-.preview-table th:nth-child(5) { width: 35%; }  /* Beneficiário / CPF */
+.preview-table th:nth-child(4) { width: 25%; }  /* Empresa / CNPJ */
+.preview-table th:nth-child(5) { width: 25%; }  /* Beneficiário / CPF */
 .preview-table th:nth-child(6) { width: 5%; }   /* PDF */
 .preview-table th:nth-child(7) { width: 5%; }   /* Remover */
 
